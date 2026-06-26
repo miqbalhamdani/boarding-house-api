@@ -46,13 +46,19 @@ See [docs/adr/0001-initial-architecture.md](docs/adr/0001-initial-architecture.m
 # 1. Configure environment
 cp .env.example .env
 
-# 2. Start everything (Postgres + API) with Docker
-make docker-up
+# 2. Start PostgreSQL locally and create the database
+# expected defaults: postgres/postgres on localhost:5432
+createdb -U postgres go_backend
 
-# --- or run locally against your own Postgres ---
+# 3. Install dependencies and run migrations
 make tidy          # download dependencies
 make migrate-up    # apply migrations (needs golang-migrate installed)
+
+# 4. Start the API locally
 make run           # start the API on :8080
+
+# --- or use Docker for Postgres + API ---
+make docker-up
 ```
 
 ## Endpoints
