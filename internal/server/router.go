@@ -9,7 +9,7 @@ import (
 )
 
 // NewRouter builds the Gin engine with middleware and routes registered.
-func NewRouter(cfg *config.Config, health *handler.HealthHandler, user *handler.UserHandler, authH *handler.AuthHandler, roomH *handler.RoomHandler) *gin.Engine {
+func NewRouter(cfg *config.Config, health *handler.HealthHandler, user *handler.UserHandler, authH *handler.AuthHandler, roomH *handler.RoomHandler, tenantH *handler.TenantHandler) *gin.Engine {
 	if cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -26,6 +26,7 @@ func NewRouter(cfg *config.Config, health *handler.HealthHandler, user *handler.
 	authH.Register(v1)
 	user.Register(v1)
 	roomH.Register(v1)
+	tenantH.Register(v1)
 
 	return r
 }

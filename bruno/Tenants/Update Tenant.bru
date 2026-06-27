@@ -1,0 +1,39 @@
+meta {
+  name: Update Tenant
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{base_url}}/owner/tenants/{{tenant_id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+body:json {
+  {
+    "phone_number": "081200000000",
+    "emergency_contact_name": "Siti Aminah"
+  }
+}
+
+tests {
+  test("updates the tenant and returns 200", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.phone_number).to.equal("081200000000");
+    expect(res.getBody().data.emergency_contact_name).to.equal("Siti Aminah");
+  });
+}
+
+docs {
+  Partially updates a tenant. All fields are optional — only provided fields are changed.
+  status may only be set to "moved_out" or "cancelled" here; activation to "active" is governed by first-bill payment (BR-008) and cannot be set manually.
+  Optional "password" (min 6 chars) resets tenant portal credentials.
+  Cross-owner access returns 404. Duplicate active email returns 409 CONFLICT.
+  Run "Create Tenant" first to populate {{tenant_id}}.
+  Requires owner access token.
+}

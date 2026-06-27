@@ -1,0 +1,50 @@
+meta {
+  name: Create Tenant
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/owner/tenants
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+body:json {
+  {
+    "full_name": "Budi Santoso",
+    "phone_number": "081234567890",
+    "email": "budi@example.com",
+    "identity_number": "317300001",
+    "emergency_contact_name": "Siti",
+    "emergency_contact_phone": "081299988877"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("tenant_id", res.getBody().data.id);
+  }
+}
+
+tests {
+  test("creates a tenant and returns 201", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().data.id).to.be.a("string");
+    expect(res.getBody().data.full_name).to.equal("Budi Santoso");
+    expect(res.getBody().data.status).to.equal("pending_payment");
+    expect(res.getBody().data).to.not.have.property("password_hash");
+  });
+}
+
+docs {
+  Creates a new tenant under the authenticated owner's workspace.
+  status is always "pending_payment" on create; a tenant becomes "active" only after the first rent bill is paid (BR-008).
+  Optional "password" (min 6 chars) generates tenant portal credentials. When set, email must be unique among active tenants (409 CONFLICT otherwise). password_hash is never returned.
+  The created tenant id is saved to {{tenant_id}} for subsequent requests.
+  Requires owner access token.
+}

@@ -1,0 +1,32 @@
+meta {
+  name: Get Tenant Detail
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/owner/tenants/{{tenant_id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+tests {
+  test("returns tenant detail", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.id).to.equal(bru.getEnvVar("tenant_id"));
+    expect(res.getBody().data).to.have.property("full_name");
+    expect(res.getBody().data).to.have.property("status");
+    expect(res.getBody().data).to.have.property("has_portal_access");
+  });
+}
+
+docs {
+  Returns the detail of a single tenant. The tenant must belong to the authenticated owner.
+  Cross-owner access returns 404.
+  Run "Create Tenant" first to populate {{tenant_id}}.
+  Requires owner access token.
+}
