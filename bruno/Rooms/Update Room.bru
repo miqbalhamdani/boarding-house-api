@@ -1,0 +1,40 @@
+meta {
+  name: Update Room
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{base_url}}/owner/rooms/{{room_id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+body:json {
+  {
+    "room_name": "Room 101 Updated",
+    "monthly_rent": 2500000,
+    "notes": "Renovated bathroom"
+  }
+}
+
+tests {
+  test("updates the room and returns 200", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.room_name).to.equal("Room 101 Updated");
+    expect(res.getBody().data.monthly_rent).to.equal(2500000);
+  });
+}
+
+docs {
+  Partially updates a room. All fields are optional — only provided fields are changed.
+  Allowed status values: available, reserved, occupied, maintenance, inactive.
+  room_number must remain unique per owner (409 CONFLICT otherwise).
+  Cross-owner access returns 404.
+  Run "Create Room" first to populate {{room_id}}.
+  Requires owner access token.
+}

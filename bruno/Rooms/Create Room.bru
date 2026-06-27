@@ -1,0 +1,50 @@
+meta {
+  name: Create Room
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/owner/rooms
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+body:json {
+  {
+    "room_number": "101",
+    "room_name": "Room 101",
+    "monthly_rent": 2000000,
+    "status": "available",
+    "notes": "Near front door"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("room_id", res.getBody().data.id);
+  }
+}
+
+tests {
+  test("creates a room and returns 201", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().data.id).to.be.a("string");
+    expect(res.getBody().data.room_number).to.equal("101");
+    expect(res.getBody().data.status).to.equal("available");
+    expect(res.getBody().data.monthly_rent).to.equal(2000000);
+  });
+}
+
+docs {
+  Creates a new room under the authenticated owner's workspace.
+  room_number must be unique per owner (409 CONFLICT otherwise).
+  status defaults to "available" if omitted. Allowed create statuses: available, maintenance, inactive.
+  monthly_rent must be a positive integer (stored in smallest currency unit, e.g. IDR cents are not used — store full rupiah).
+  The created room id is saved to {{room_id}} for subsequent requests.
+  Requires owner access token.
+}
