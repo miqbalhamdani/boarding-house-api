@@ -1,0 +1,51 @@
+meta {
+  name: List My Bills
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/tenant/bills?page=1&limit=20
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  limit: 20
+  ~status: unpaid
+}
+
+auth:bearer {
+  token: {{tenant_access_token}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && res.getBody().data.bills.length > 0) {
+    bru.setEnvVar("tenant_first_bill_id", res.getBody().data.bills[0].id);
+  }
+}
+
+tests {
+  test("returns the tenant's own paginated bills", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.bills).to.be.an("array");
+    expect(res.getBody().data).to.have.property("total");
+    expect(res.getBody().data).to.have.property("page");
+    expect(res.getBody().data).to.have.property("limit");
+  });
+}
+
+docs {
+  Returns a paginated list of the authenticated tenant's bills (Module 08).
+
+  Query params:
+  - status: unpaid | gateway_pending | paid | overdue | cancelled (optional)
+  - page, limit (default 1 / 20, max limit 100)
+
+  tenant_id and owner_id are derived from the tenant token (BR-002); the list only
+  ever contains the tenant's own bills. Saves the first bill id to
+  {{tenant_first_bill_id}} for the bill-detail and Pay Now requests.
+
+  Requires a tenant access token.
+}

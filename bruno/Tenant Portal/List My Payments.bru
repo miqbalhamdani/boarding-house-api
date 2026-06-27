@@ -1,0 +1,41 @@
+meta {
+  name: List My Payments
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/tenant/payments?page=1&limit=20
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  limit: 20
+}
+
+auth:bearer {
+  token: {{tenant_access_token}}
+}
+
+tests {
+  test("returns the tenant's own payment history", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.payments).to.be.an("array");
+    expect(res.getBody().data).to.have.property("total");
+    expect(res.getBody().data).to.have.property("page");
+    expect(res.getBody().data).to.have.property("limit");
+  });
+}
+
+docs {
+  Returns a paginated list of the authenticated tenant's successful payments —
+  their payment history (Module 08).
+
+  Query params:
+  - page, limit (default 1 / 20, max limit 100)
+
+  tenant_id and owner_id are derived from the tenant token (BR-002); the list only
+  ever contains the tenant's own payments. Requires a tenant access token.
+}
