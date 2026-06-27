@@ -29,6 +29,11 @@ Always read:
 - Use integer money values.
 - Use UUID primary keys.
 - Return consistent API response format.
+- Enforce owner_id isolation for owner-owned data.
+- Never accept owner_id from request body.
+- Derive owner_id from authenticated owner token.
+- Derive tenant_id from authenticated tenant token for tenant portal routes.
+- Add tests for owner/tenant isolation where relevant.
 
 ## Multi-Tenant Security
 - Every owner-owned query must filter by owner_id.

@@ -1,0 +1,28 @@
+meta {
+  name: Get My Profile
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/tenant/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tenant_access_token}}
+}
+
+tests {
+  test("returns the authenticated tenant profile", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.id).to.be.a("string");
+  });
+}
+
+docs {
+  Returns the profile of the tenant identified by the bearer access token.
+  Requires a tenant access token; an owner token is rejected with 401.
+  Run "Login Tenant" first to populate {{tenant_access_token}}.
+}

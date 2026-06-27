@@ -1,0 +1,36 @@
+meta {
+  name: Refresh Tenant
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/auth/tenant/refresh
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "refresh_token": "{{tenant_refresh_token}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const d = res.getBody().data;
+    bru.setEnvVar("tenant_access_token", d.access_token);
+    bru.setEnvVar("tenant_refresh_token", d.refresh_token);
+  }
+}
+
+tests {
+  test("issues a new token pair", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.access_token).to.be.a("string");
+  });
+}
+
+docs {
+  Exchanges a valid tenant refresh token for a new access + refresh pair.
+}

@@ -1,0 +1,37 @@
+meta {
+  name: Refresh Owner
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/auth/owner/refresh
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "refresh_token": "{{owner_refresh_token}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const d = res.getBody().data;
+    bru.setEnvVar("owner_access_token", d.access_token);
+    bru.setEnvVar("owner_refresh_token", d.refresh_token);
+  }
+}
+
+tests {
+  test("issues a new token pair", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.access_token).to.be.a("string");
+  });
+}
+
+docs {
+  Exchanges a valid owner refresh token for a new access + refresh pair.
+  An access token used here is rejected with 401 (token type is checked).
+}

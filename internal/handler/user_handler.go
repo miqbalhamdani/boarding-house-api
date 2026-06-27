@@ -10,6 +10,7 @@ import (
 	"github.com/iqbal-hamdani/go-backend/internal/model"
 	"github.com/iqbal-hamdani/go-backend/internal/repository"
 	"github.com/iqbal-hamdani/go-backend/internal/service"
+	"github.com/iqbal-hamdani/go-backend/pkg/response"
 )
 
 // UserHandler exposes HTTP endpoints for users.
@@ -33,35 +34,35 @@ func (h *UserHandler) Register(rg *gin.RouterGroup) {
 func (h *UserHandler) Create(c *gin.Context) {
 	var in model.CreateUserInput
 	if err := c.ShouldBindJSON(&in); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusBadRequest, response.CodeValidation, err.Error(), nil)
 		return
 	}
 
 	user, err := h.svc.Create(c.Request.Context(), in)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create user"})
+		response.Error(c, http.StatusInternalServerError, response.CodeInternal, "could not create user", nil)
 		return
 	}
-	c.JSON(http.StatusCreated, user)
+	response.Success(c, http.StatusCreated, user, "User created")
 }
 
 func (h *UserHandler) GetByID(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		response.Error(c, http.StatusBadRequest, response.CodeValidation, "invalid id", nil)
 		return
 	}
 
 	user, err := h.svc.GetByID(c.Request.Context(), id)
 	if errors.Is(err, repository.ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		response.Error(c, http.StatusNotFound, response.CodeNotFound, "user not found", nil)
 		return
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch user"})
+		response.Error(c, http.StatusInternalServerError, response.CodeInternal, "could not fetch user", nil)
 		return
 	}
-	c.JSON(http.StatusOK, user)
+	response.Success(c, http.StatusOK, user, "Success")
 }
 
 func (h *UserHandler) List(c *gin.Context) {
@@ -70,8 +71,8 @@ func (h *UserHandler) List(c *gin.Context) {
 
 	users, err := h.svc.List(c.Request.Context(), page, pageSize)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not list users"})
+		response.Error(c, http.StatusInternalServerError, response.CodeInternal, "could not list users", nil)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": users, "page": page, "page_size": pageSize})
+	response.Success(c, http.StatusOK, gin.H{"items": users, "page": page, "page_size": pageSize}, "Success")
 }

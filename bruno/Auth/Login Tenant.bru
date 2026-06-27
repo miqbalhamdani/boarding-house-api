@@ -1,0 +1,39 @@
+meta {
+  name: Login Tenant
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/auth/tenant/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{tenant_email}}",
+    "password": "{{tenant_password}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const t = res.getBody().data.tokens;
+    bru.setEnvVar("tenant_access_token", t.access_token);
+    bru.setEnvVar("tenant_refresh_token", t.refresh_token);
+  }
+}
+
+tests {
+  test("logs in tenant and returns tokens", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.tenant_id).to.be.a("string");
+  });
+}
+
+docs {
+  Authenticates a tenant by email + password and returns tenant tokens.
+  Note: tenants only have a password once onboarding sets it; until then this
+  returns 401 UNAUTHORIZED. Saves tenant access + refresh tokens to the environment.
+}

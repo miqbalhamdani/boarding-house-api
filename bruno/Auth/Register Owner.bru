@@ -1,0 +1,43 @@
+meta {
+  name: Register Owner
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/auth/owner/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "business_name": "Kos Budi",
+    "full_name": "Owner Name",
+    "email": "{{owner_email}}",
+    "password": "{{owner_password}}",
+    "phone_number": "08123456789"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    const t = res.getBody().data.tokens;
+    bru.setEnvVar("owner_access_token", t.access_token);
+    bru.setEnvVar("owner_refresh_token", t.refresh_token);
+  }
+}
+
+tests {
+  test("registers owner and returns tokens", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().data.tokens.access_token).to.be.a("string");
+    expect(res.getBody().data.tokens.refresh_token).to.be.a("string");
+  });
+}
+
+docs {
+  Creates an owner workspace plus its first owner login user, then auto-logs in.
+  Email must be unique (409 CONFLICT otherwise). Password min length 8.
+  Access + refresh tokens are saved to the environment for subsequent requests.
+}
