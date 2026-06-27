@@ -16,6 +16,7 @@ import (
 	"github.com/iqbal-hamdani/go-backend/internal/repository"
 	"github.com/iqbal-hamdani/go-backend/internal/server"
 	"github.com/iqbal-hamdani/go-backend/internal/service"
+	"github.com/iqbal-hamdani/go-backend/pkg/auth"
 	"github.com/iqbal-hamdani/go-backend/pkg/logger"
 )
 
@@ -53,7 +54,14 @@ func run() error {
 	userHandler := handler.NewUserHandler(userSvc)
 	healthHandler := handler.NewHealthHandler(pool)
 
-	router := server.NewRouter(cfg, healthHandler, userHandler)
+	// Auth module.
+	tokenManager := auth.NewManager(cfg.JWTSecret, cfg.JWTAccessTTLMinutes, cfg.JWTRefreshTTLHours)
+	ownerRepo := repository.NewOwnerRepository(pool)
+	tenantAuthRepo := repository.NewTenantAuthRepository(pool)
+	authSvc := service.NewAuthService(ownerRepo, tenantAuthRepo, tokenManager)
+	authHandler := handler.NewAuthHandler(authSvc, tokenManager)
+
+	router := server.NewRouter(cfg, healthHandler, userHandler, authHandler)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

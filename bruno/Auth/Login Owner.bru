@@ -1,0 +1,39 @@
+meta {
+  name: Login Owner
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/auth/owner/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{owner_email}}",
+    "password": "{{owner_password}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const t = res.getBody().data.tokens;
+    bru.setEnvVar("owner_access_token", t.access_token);
+    bru.setEnvVar("owner_refresh_token", t.refresh_token);
+  }
+}
+
+tests {
+  test("logs in and returns tokens", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.tokens.access_token).to.be.a("string");
+  });
+}
+
+docs {
+  Authenticates an owner user by email + password.
+  Wrong credentials → 401 UNAUTHORIZED. Inactive account → 403 FORBIDDEN.
+  Saves the returned access + refresh tokens to the environment.
+}
