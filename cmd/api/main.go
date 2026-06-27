@@ -86,7 +86,12 @@ func run() error {
 	paymentSvc := service.NewPaymentService(paymentRepo)
 	paymentHandler := handler.NewPaymentHandler(paymentSvc, tokenManager)
 
-	router := server.NewRouter(cfg, healthHandler, userHandler, authHandler, roomHandler, tenantHandler, onboardingHandler, billHandler, paymentHandler)
+	// Dashboard module.
+	dashboardRepo := repository.NewDashboardRepository(pool)
+	dashboardSvc := service.NewDashboardService(dashboardRepo)
+	dashboardHandler := handler.NewDashboardHandler(dashboardSvc, tokenManager)
+
+	router := server.NewRouter(cfg, healthHandler, userHandler, authHandler, roomHandler, tenantHandler, onboardingHandler, billHandler, paymentHandler, dashboardHandler)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
