@@ -1,0 +1,64 @@
+meta {
+  name: Assign Room
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/owner/onboarding/assign-room
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+body:json {
+  {
+    "tenant_id": "{{tenant_id}}",
+    "room_id": "{{room_id}}",
+    "start_date": "2026-07-10",
+    "monthly_rent": 2000000,
+    "payment_due_day": 10
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("room_assignment_id", res.getBody().data.room_assignment_id);
+    bru.setEnvVar("first_bill_id", res.getBody().data.first_bill_id);
+  }
+}
+
+tests {
+  test("assigns tenant to room and returns 201", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().data.room_assignment_id).to.be.a("string");
+    expect(res.getBody().data.first_bill_id).to.be.a("string");
+    expect(res.getBody().data.tenant_status).to.equal("pending_payment");
+    expect(res.getBody().data.room_status).to.equal("reserved");
+  });
+}
+
+docs {
+  Assigns a tenant to an available room and creates the first monthly rent bill (Module 04).
+
+  Requires {{tenant_id}} (Create Tenant) and {{room_id}} (Create Room) to be set first.
+
+  Effects, all in one DB transaction:
+  - creates a room_assignment with status "pending_payment"
+  - creates the first rent bill with status "unpaid" for the start-date billing month
+  - sets the room status to "reserved" (BR-005)
+  - sets the tenant status to "pending_payment" (BR-007)
+
+  Validation / conflicts:
+  - tenant_id and room_id must be UUIDs of records owned by the authenticated owner (404 otherwise)
+  - start_date must be YYYY-MM-DD; monthly_rent >= 1; payment_due_day 1..31 (400 VALIDATION_ERROR)
+  - room must be "available" (409 CONFLICT)
+  - room or tenant must not already have an active/pending assignment (409 CONFLICT) — BR-010 / BR-011
+
+  owner_id is never accepted from the body; it is derived from the owner token.
+  Saves room_assignment_id and first_bill_id to the environment.
+  Requires owner access token.
+}

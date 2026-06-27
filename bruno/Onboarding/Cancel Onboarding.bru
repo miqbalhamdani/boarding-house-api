@@ -1,0 +1,38 @@
+meta {
+  name: Cancel Onboarding
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/owner/onboarding/{{room_assignment_id}}/cancel
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+tests {
+  test("cancels a pending onboarding and returns 200", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().message).to.equal("Onboarding cancelled");
+  });
+}
+
+docs {
+  Cancels a pending onboarding before the first rent bill is paid (Module 04).
+
+  Requires {{room_assignment_id}} from a prior Assign Room call.
+
+  Effects, all in one DB transaction:
+  - sets the room_assignment status to "cancelled"
+  - cancels the unpaid first bill (status "cancelled")
+  - releases the room back to "available"
+  - reverts the tenant to its pre-onboarding "pending_payment" state
+
+  Only an assignment still in "pending_payment" can be cancelled here (409 CONFLICT otherwise).
+  A room_assignment that does not belong to the authenticated owner returns 404.
+  Requires owner access token.
+}
