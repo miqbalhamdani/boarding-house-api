@@ -1,0 +1,33 @@
+meta {
+  name: Mark Overdue Bills
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/owner/bills/mark-overdue
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+tests {
+  test("updates overdue bills", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data).to.have.property("updated");
+    expect(res.getBody().data.updated).to.be.a("number");
+  });
+}
+
+docs {
+  System/admin endpoint that flips the authenticated owner's unpaid, past-due bills to
+  "overdue" (Module 05, BR-018): any bill with status "unpaid" whose due_date is before
+  today becomes "overdue". A scheduled daily job should call this; it is also exposed for
+  manual/backup use.
+
+  Returns the number of bills updated. owner_id is derived from the owner token (BR-001).
+  Requires owner access token.
+}
