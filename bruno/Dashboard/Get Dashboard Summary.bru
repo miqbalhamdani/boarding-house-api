@@ -1,0 +1,59 @@
+meta {
+  name: Get Dashboard Summary
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/owner/dashboard/summary?month=2026-07
+  body: none
+  auth: bearer
+}
+
+params:query {
+  month: 2026-07
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+tests {
+  test("returns owner dashboard summary", function () {
+    expect(res.getStatus()).to.equal(200);
+    const data = res.getBody().data;
+    expect(data).to.have.property("total_rooms");
+    expect(data).to.have.property("available_rooms");
+    expect(data).to.have.property("occupied_rooms");
+    expect(data).to.have.property("active_tenants");
+    expect(data).to.have.property("unpaid_bills");
+    expect(data).to.have.property("overdue_bills");
+    expect(data).to.have.property("gateway_pending_bills");
+    expect(data).to.have.property("paid_bills_this_month");
+    expect(data).to.have.property("collected_amount_this_month");
+  });
+
+  test("metrics are numeric", function () {
+    const data = res.getBody().data;
+    expect(data.total_rooms).to.be.a("number");
+    expect(data.collected_amount_this_month).to.be.a("number");
+  });
+}
+
+docs {
+  Returns the owner overview dashboard (Module 07).
+
+  Query params:
+  - month: YYYY-MM (optional, defaults to the current calendar month)
+
+  Metrics (all scoped to the authenticated owner — BR-001, BR-031):
+  - total_rooms, available_rooms, occupied_rooms: current room counts
+  - active_tenants: current active tenant count
+  - unpaid_bills, overdue_bills, gateway_pending_bills: current outstanding bill counts
+  - paid_bills_this_month: number of successful payments in the month
+  - collected_amount_this_month: sum of successful payment amounts in the month
+    (gateway-pending bills are NOT counted as collected)
+
+  owner_id is always derived from the owner token. Requires owner access token.
+  An invalid month (not YYYY-MM) returns 400 VALIDATION_ERROR.
+}
