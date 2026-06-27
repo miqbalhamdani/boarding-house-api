@@ -81,7 +81,12 @@ func run() error {
 	billSvc := service.NewBillService(billRepo)
 	billHandler := handler.NewBillHandler(billSvc, tokenManager)
 
-	router := server.NewRouter(cfg, healthHandler, userHandler, authHandler, roomHandler, tenantHandler, onboardingHandler, billHandler)
+	// Payment tracking module.
+	paymentRepo := repository.NewPaymentRepository(pool)
+	paymentSvc := service.NewPaymentService(paymentRepo)
+	paymentHandler := handler.NewPaymentHandler(paymentSvc, tokenManager)
+
+	router := server.NewRouter(cfg, healthHandler, userHandler, authHandler, roomHandler, tenantHandler, onboardingHandler, billHandler, paymentHandler)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

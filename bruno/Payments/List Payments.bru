@@ -1,0 +1,36 @@
+meta {
+  name: List Payments
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/owner/payments?page=1&limit=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+tests {
+  test("returns paginated payment list", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.payments).to.be.an("array");
+    expect(res.getBody().data).to.have.property("total");
+    expect(res.getBody().data).to.have.property("page");
+    expect(res.getBody().data).to.have.property("limit");
+  });
+}
+
+docs {
+  Returns a paginated list of payments belonging to the authenticated owner (Module 06).
+  Query params:
+  - tenant_id: UUID
+  - month: YYYY-MM (e.g. 2026-07) — filters by payment_date month
+  - page, limit (default 1 / 20, max limit 100)
+
+  Ordered by payment_date descending. owner_id is always derived from the owner token (BR-001).
+  Requires owner access token.
+}
