@@ -1,0 +1,49 @@
+meta {
+  name: Generate Monthly Bills
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/owner/bills/generate-monthly
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+body:json {
+  {
+    "billing_month": "2026-07"
+  }
+}
+
+tests {
+  test("generates monthly bills idempotently", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data).to.have.property("billing_month");
+    expect(res.getBody().data).to.have.property("active_assignments");
+    expect(res.getBody().data).to.have.property("created");
+    expect(res.getBody().data).to.have.property("skipped");
+  });
+}
+
+docs {
+  Backup endpoint to generate one monthly rent bill per ACTIVE room assignment for the
+  authenticated owner (Module 05, BR-015). A scheduled daily job should call this on day 1
+  of each month; this manual endpoint is the backup.
+
+  Request body:
+  - billing_month (optional, YYYY-MM): the month to bill. Defaults to the current month.
+
+  Idempotent (BR-016): the unique(room_assignment_id, billing_month) constraint means a
+  re-run for the same month creates no duplicates. The response reports created vs skipped.
+
+  - amount uses the assignment's monthly_rent snapshot (BR-012)
+  - bills start as "unpaid"; due_date is payment_due_day clamped to the month end
+  - 400 VALIDATION_ERROR for a malformed billing_month
+
+  owner_id is derived from the owner token (BR-001). Requires owner access token.
+}

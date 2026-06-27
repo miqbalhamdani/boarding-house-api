@@ -76,7 +76,12 @@ func run() error {
 	onboardingSvc := service.NewOnboardingService(onboardingRepo)
 	onboardingHandler := handler.NewOnboardingHandler(onboardingSvc, tokenManager)
 
-	router := server.NewRouter(cfg, healthHandler, userHandler, authHandler, roomHandler, tenantHandler, onboardingHandler)
+	// Monthly billing module.
+	billRepo := repository.NewBillRepository(pool)
+	billSvc := service.NewBillService(billRepo)
+	billHandler := handler.NewBillHandler(billSvc, tokenManager)
+
+	router := server.NewRouter(cfg, healthHandler, userHandler, authHandler, roomHandler, tenantHandler, onboardingHandler, billHandler)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

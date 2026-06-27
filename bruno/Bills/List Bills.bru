@@ -1,0 +1,37 @@
+meta {
+  name: List Bills
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/owner/bills?page=1&limit=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+tests {
+  test("returns paginated bill list", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.bills).to.be.an("array");
+    expect(res.getBody().data).to.have.property("total");
+    expect(res.getBody().data).to.have.property("page");
+    expect(res.getBody().data).to.have.property("limit");
+  });
+}
+
+docs {
+  Returns a paginated list of bills belonging to the authenticated owner (Module 05).
+  Query params:
+  - status: unpaid | gateway_pending | paid | overdue | cancelled
+  - billing_month: YYYY-MM (e.g. 2026-07)
+  - tenant_id: UUID
+  - room_id: UUID
+  - page, limit (default 1 / 20, max limit 100)
+
+  owner_id is always derived from the owner token (BR-001). Requires owner access token.
+}

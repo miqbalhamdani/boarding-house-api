@@ -1,0 +1,33 @@
+meta {
+  name: Get Bill Detail
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/owner/bills/{{first_bill_id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+tests {
+  test("returns the bill detail", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.id).to.equal(bru.getEnvVar("first_bill_id"));
+    expect(res.getBody().data).to.have.property("amount");
+    expect(res.getBody().data).to.have.property("status");
+    expect(res.getBody().data).to.have.property("billing_month");
+    expect(res.getBody().data).to.have.property("due_date");
+  });
+}
+
+docs {
+  Returns a single bill owned by the authenticated owner (Module 05).
+  Uses {{first_bill_id}} saved by the Onboarding "Assign Room" request.
+  Returns 404 NOT_FOUND for a bill that does not exist or belongs to another owner (BR-001).
+  Requires owner access token.
+}
