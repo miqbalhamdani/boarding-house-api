@@ -1,0 +1,30 @@
+meta {
+  name: Delete Room
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}/owner/rooms/{{room_id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+tests {
+  test("soft-deletes the room and returns 200", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().message).to.equal("Room deleted");
+  });
+}
+
+docs {
+  Soft-deletes a room (sets deleted_at). The room is no longer returned in list or detail requests.
+  Returns 409 CONFLICT if the room is currently occupied or reserved — vacate the room before deleting.
+  Cross-owner access returns 404.
+  Run "Create Room" first to populate {{room_id}}.
+  Requires owner access token.
+}

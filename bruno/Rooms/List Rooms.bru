@@ -1,0 +1,31 @@
+meta {
+  name: List Rooms
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/owner/rooms?page=1&limit=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+tests {
+  test("returns paginated room list", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.rooms).to.be.an("array");
+    expect(res.getBody().data).to.have.property("total");
+    expect(res.getBody().data).to.have.property("page");
+    expect(res.getBody().data).to.have.property("limit");
+  });
+}
+
+docs {
+  Returns a paginated list of rooms belonging to the authenticated owner.
+  Query params: status (available|reserved|occupied|maintenance|inactive), search (room_number or room_name), page, limit.
+  Requires owner access token.
+}

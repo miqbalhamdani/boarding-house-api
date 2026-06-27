@@ -1,0 +1,32 @@
+meta {
+  name: Get Room Detail
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/owner/rooms/{{room_id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+tests {
+  test("returns room detail", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.id).to.equal(bru.getEnvVar("room_id"));
+    expect(res.getBody().data).to.have.property("room_number");
+    expect(res.getBody().data).to.have.property("monthly_rent");
+    expect(res.getBody().data).to.have.property("status");
+  });
+}
+
+docs {
+  Returns the detail of a single room. The room must belong to the authenticated owner.
+  Cross-owner access returns 404.
+  Run "Create Room" first to populate {{room_id}}.
+  Requires owner access token.
+}
