@@ -1,0 +1,68 @@
+meta {
+  name: Record Manual Payment
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/owner/payments/manual
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+body:json {
+  {
+    "bill_id": "{{first_bill_id}}",
+    "amount": 2000000,
+    "payment_date": "2026-07-10T10:00:00Z",
+    "payment_method": "bank_transfer",
+    "reference_number": "TRX-001",
+    "notes": "Paid by bank transfer"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("payment_id", res.getBody().data.id);
+  }
+}
+
+tests {
+  test("records a manual full payment and returns 201", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().data.id).to.be.a("string");
+    expect(res.getBody().data.payment_source).to.equal("manual");
+    expect(res.getBody().data.amount).to.equal(2000000);
+    expect(res.getBody().data.bill_id).to.equal(bru.getEnvVar("first_bill_id"));
+  });
+}
+
+docs {
+  Records a manual full payment for an unpaid bill (Module 06, BR-028).
+
+  Effects, all in one DB transaction (coding-rules):
+  - creates a payment record with payment_source "manual" (BR-029)
+  - marks the bill "paid" and stamps paid_at
+  - if this is the first payment for a pending_payment assignment, activates the
+    tenant, assignment, and room (BR-006, BR-008)
+
+  Request body:
+  - bill_id (UUID, required): the bill being paid
+  - amount (int, required): must equal the bill amount exactly (BR-019)
+  - payment_date (RFC3339, optional): defaults to the server's current time
+  - payment_method (required): cash | bank_transfer | e_wallet | virtual_account | credit_card | qris | other
+  - reference_number, notes (optional)
+
+  Validation / conflicts:
+  - 400 VALIDATION_ERROR: missing/invalid fields, unsupported payment_method,
+    malformed payment_date, or amount != bill amount
+  - 404 NOT_FOUND: bill does not exist or belongs to another owner (BR-001)
+  - 409 CONFLICT: bill already paid, bill cancelled, or a payment already exists (BR-030)
+
+  owner_id is never accepted from the body; it is derived from the owner token.
+  Saves payment_id to the environment. Requires owner access token.
+}

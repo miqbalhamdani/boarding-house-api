@@ -1,0 +1,33 @@
+meta {
+  name: Get Payment Detail
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/owner/payments/{{payment_id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+tests {
+  test("returns the payment detail", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.id).to.equal(bru.getEnvVar("payment_id"));
+    expect(res.getBody().data).to.have.property("amount");
+    expect(res.getBody().data).to.have.property("payment_source");
+    expect(res.getBody().data).to.have.property("payment_method");
+    expect(res.getBody().data).to.have.property("payment_date");
+  });
+}
+
+docs {
+  Returns a single payment owned by the authenticated owner (Module 06).
+  Uses {{payment_id}} saved by the "Record Manual Payment" request.
+  Returns 404 NOT_FOUND for a payment that does not exist or belongs to another owner (BR-001).
+  Requires owner access token.
+}
