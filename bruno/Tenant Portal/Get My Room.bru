@@ -1,0 +1,36 @@
+meta {
+  name: Get My Room
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/tenant/my-room
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tenant_access_token}}
+}
+
+tests {
+  test("returns the tenant's current room assignment", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.room_assignment_id).to.be.a("string");
+    expect(res.getBody().data.room_id).to.be.a("string");
+    expect(res.getBody().data).to.have.property("room_number");
+    expect(res.getBody().data).to.have.property("monthly_rent");
+  });
+}
+
+docs {
+  Returns the authenticated tenant's current room: their active or pending room
+  assignment flattened with the room it points to (Module 08).
+
+  tenant_id and owner_id are derived from the tenant token (BR-002); a tenant can
+  never see another tenant's room. Returns 404 NOT_FOUND when the tenant has no
+  active or pending assignment.
+
+  Run "Login Tenant" first to populate {{tenant_access_token}}.
+}

@@ -18,6 +18,14 @@ type Config struct {
 	JWTSecret           string `mapstructure:"JWT_SECRET"`
 	JWTAccessTTLMinutes int    `mapstructure:"JWT_ACCESS_TTL_MINUTES"`
 	JWTRefreshTTLHours  int    `mapstructure:"JWT_REFRESH_TTL_HOURS"`
+
+	// Payment gateway. The MVP ships a self-contained sandbox provider so the
+	// tenant Pay Now flow works without external credentials; real providers
+	// replace it via PAYMENT_GATEWAY_PROVIDER.
+	PaymentGatewayProvider         string `mapstructure:"PAYMENT_GATEWAY_PROVIDER"`
+	PaymentGatewayCheckoutBaseURL  string `mapstructure:"PAYMENT_GATEWAY_CHECKOUT_BASE_URL"`
+	PaymentGatewayReturnURL        string `mapstructure:"PAYMENT_GATEWAY_RETURN_URL"`
+	PaymentGatewayCheckoutTTLHours int    `mapstructure:"PAYMENT_GATEWAY_CHECKOUT_TTL_HOURS"`
 }
 
 // Load reads configuration from the environment, falling back to a local
@@ -30,6 +38,10 @@ func Load() (*Config, error) {
 	v.SetDefault("LOG_LEVEL", "info")
 	v.SetDefault("JWT_ACCESS_TTL_MINUTES", 60)
 	v.SetDefault("JWT_REFRESH_TTL_HOURS", 720)
+	v.SetDefault("PAYMENT_GATEWAY_PROVIDER", "sandbox")
+	v.SetDefault("PAYMENT_GATEWAY_CHECKOUT_BASE_URL", "https://sandbox.pay.local/checkout")
+	v.SetDefault("PAYMENT_GATEWAY_RETURN_URL", "https://app.example.com/tenant/payment-result")
+	v.SetDefault("PAYMENT_GATEWAY_CHECKOUT_TTL_HOURS", 24)
 
 	v.SetConfigName(".env")
 	v.SetConfigType("env")

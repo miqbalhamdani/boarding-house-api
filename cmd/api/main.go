@@ -12,6 +12,7 @@ import (
 
 	"github.com/iqbal-hamdani/go-backend/internal/config"
 	"github.com/iqbal-hamdani/go-backend/internal/database"
+	"github.com/iqbal-hamdani/go-backend/internal/gateway"
 	"github.com/iqbal-hamdani/go-backend/internal/handler"
 	"github.com/iqbal-hamdani/go-backend/internal/repository"
 	"github.com/iqbal-hamdani/go-backend/internal/server"
@@ -91,7 +92,19 @@ func run() error {
 	dashboardSvc := service.NewDashboardService(dashboardRepo)
 	dashboardHandler := handler.NewDashboardHandler(dashboardSvc, tokenManager)
 
-	router := server.NewRouter(cfg, healthHandler, userHandler, authHandler, roomHandler, tenantHandler, onboardingHandler, billHandler, paymentHandler, dashboardHandler)
+	// Tenant portal module. The MVP uses a self-contained sandbox gateway
+	// provider so the Pay Now flow works without external credentials.
+	gatewayProvider := gateway.NewSandboxProvider(
+		cfg.PaymentGatewayProvider,
+		cfg.PaymentGatewayCheckoutBaseURL,
+		time.Duration(cfg.PaymentGatewayCheckoutTTLHours)*time.Hour,
+	)
+	tenantPortalRepo := repository.NewTenantPortalRepository(pool)
+	gatewayRepo := repository.NewGatewayRepository(pool)
+	tenantPortalSvc := service.NewTenantPortalService(tenantPortalRepo, gatewayRepo, gatewayProvider, cfg.PaymentGatewayReturnURL)
+	tenantPortalHandler := handler.NewTenantPortalHandler(tenantPortalSvc, tokenManager)
+
+	router := server.NewRouter(cfg, healthHandler, userHandler, authHandler, roomHandler, tenantHandler, onboardingHandler, billHandler, paymentHandler, dashboardHandler, tenantPortalHandler)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

@@ -1,0 +1,63 @@
+meta {
+  name: Pay Bill
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/tenant/bills/{{tenant_first_bill_id}}/pay
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tenant_access_token}}
+}
+
+body:json {
+  {
+    "provider": "sandbox"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("tenant_gateway_transaction_id", res.getBody().data.gateway_transaction_id);
+    bru.setEnvVar("tenant_checkout_url", res.getBody().data.checkout_url);
+  }
+}
+
+tests {
+  test("creates a gateway checkout and returns a checkout URL", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().data.checkout_url).to.be.a("string");
+    expect(res.getBody().data.status).to.equal("pending");
+    expect(res.getBody().data.gateway_transaction_id).to.be.a("string");
+  });
+}
+
+docs {
+  Opens a payment gateway checkout for the tenant's own bill — the Pay Now flow
+  (Module 08, Module 09 checkout creation).
+
+  Request body (optional):
+  - provider: the gateway provider to use; defaults to the server's configured
+    provider when omitted. The MVP ships a self-contained "sandbox" provider.
+
+  The amount is never accepted from the request; it is always the bill amount
+  (BR-022). Effects, all in one DB transaction:
+  - creates a pending payment_gateway_transactions record (raw response stored)
+  - moves the bill to gateway_pending (BR-023)
+  - if a still-valid pending checkout already exists, it is reused, not
+    duplicated (BR-021)
+
+  A bill is payable only when unpaid, overdue, or gateway_pending with no live
+  checkout (BR-020). Conflicts/validation:
+  - 400 VALIDATION_ERROR: unsupported provider
+  - 404 NOT_FOUND: bill does not exist or belongs to another tenant (BR-002)
+  - 409 CONFLICT: bill already paid or cancelled
+
+  The bill is never marked paid here — only a verified gateway webhook can do
+  that (BR-026). Saves checkout details to the environment. Run "List My Bills"
+  first to populate {{tenant_first_bill_id}}. Requires a tenant access token.
+}
