@@ -66,7 +66,12 @@ func run() error {
 	roomSvc := service.NewRoomService(roomRepo)
 	roomHandler := handler.NewRoomHandler(roomSvc, tokenManager)
 
-	router := server.NewRouter(cfg, healthHandler, userHandler, authHandler, roomHandler)
+	// Tenant management module.
+	tenantRepo := repository.NewTenantRepository(pool)
+	tenantSvc := service.NewTenantService(tenantRepo)
+	tenantHandler := handler.NewTenantHandler(tenantSvc, tokenManager)
+
+	router := server.NewRouter(cfg, healthHandler, userHandler, authHandler, roomHandler, tenantHandler)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

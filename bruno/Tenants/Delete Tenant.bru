@@ -1,0 +1,29 @@
+meta {
+  name: Delete Tenant
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}/owner/tenants/{{tenant_id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+tests {
+  test("soft-deletes the tenant and returns 200", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().message).to.equal("Tenant deleted");
+  });
+}
+
+docs {
+  Soft-deletes a tenant (sets deleted_at). The tenant is no longer returned in list or detail requests.
+  Cross-owner access returns 404.
+  Run "Create Tenant" first to populate {{tenant_id}}.
+  Requires owner access token.
+}

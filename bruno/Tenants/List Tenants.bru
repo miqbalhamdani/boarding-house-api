@@ -1,0 +1,31 @@
+meta {
+  name: List Tenants
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/owner/tenants?page=1&limit=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+tests {
+  test("returns paginated tenant list", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.tenants).to.be.an("array");
+    expect(res.getBody().data).to.have.property("total");
+    expect(res.getBody().data).to.have.property("page");
+    expect(res.getBody().data).to.have.property("limit");
+  });
+}
+
+docs {
+  Returns a paginated list of tenants belonging to the authenticated owner.
+  Query params: status (pending_payment|active|moved_out|cancelled), search (full_name, email or phone_number), page, limit.
+  Requires owner access token.
+}
