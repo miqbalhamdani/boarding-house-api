@@ -63,6 +63,28 @@ Request:
 ### Login Tenant
 `POST /auth/tenant/login`
 
+### Owner Profile (Me)
+`GET /owner/me`
+
+Requires an owner access token. `owner_id` and `owner_user_id` are derived from
+the token — never from query or body. Returns the profile only; no auth tokens.
+
+Response:
+```json
+{
+  "data": {
+    "owner_id": "uuid",
+    "owner_user_id": "uuid",
+    "business_name": "Kos Budi",
+    "full_name": "Owner Name",
+    "email": "owner@example.com",
+    "phone_number": "08123456789",
+    "status": "active"
+  },
+  "message": "Success"
+}
+```
+
 ## Room API
 
 ### List Rooms

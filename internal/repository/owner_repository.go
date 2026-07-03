@@ -23,6 +23,10 @@ type OwnerRepository interface {
 	CreateOwnerUser(ctx context.Context, tx pgx.Tx, ownerID, fullName, email, passwordHash string) (*model.OwnerUser, error)
 	// GetOwnerUserByEmail fetches an owner login user by email.
 	GetOwnerUserByEmail(ctx context.Context, email string) (*model.OwnerUser, error)
+	// GetOwnerByID fetches an owner workspace by its ID.
+	GetOwnerByID(ctx context.Context, ownerID string) (*model.Owner, error)
+	// GetOwnerUserByID fetches an owner login user by its ID.
+	GetOwnerUserByID(ctx context.Context, ownerUserID string) (*model.OwnerUser, error)
 	// BeginTx starts a transaction for the register flow.
 	BeginTx(ctx context.Context) (pgx.Tx, error)
 }
@@ -91,6 +95,42 @@ func (r *ownerRepository) GetOwnerUserByEmail(ctx context.Context, email string)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("get owner user by email: %w", err)
+	}
+	return &u, nil
+}
+
+func (r *ownerRepository) GetOwnerByID(ctx context.Context, ownerID string) (*model.Owner, error) {
+	const q = `
+		SELECT id, business_name, full_name, email, phone_number, created_at, updated_at
+		FROM owners
+		WHERE id = $1 AND deleted_at IS NULL`
+
+	var o model.Owner
+	err := r.pool.QueryRow(ctx, q, ownerID).
+		Scan(&o.ID, &o.BusinessName, &o.FullName, &o.Email, &o.PhoneNumber, &o.CreatedAt, &o.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get owner by id: %w", err)
+	}
+	return &o, nil
+}
+
+func (r *ownerRepository) GetOwnerUserByID(ctx context.Context, ownerUserID string) (*model.OwnerUser, error) {
+	const q = `
+		SELECT id, owner_id, full_name, email, password_hash, status, created_at, updated_at
+		FROM owner_users
+		WHERE id = $1 AND deleted_at IS NULL`
+
+	var u model.OwnerUser
+	err := r.pool.QueryRow(ctx, q, ownerUserID).
+		Scan(&u.ID, &u.OwnerID, &u.FullName, &u.Email, &u.PasswordHash, &u.Status, &u.CreatedAt, &u.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get owner user by id: %w", err)
 	}
 	return &u, nil
 }

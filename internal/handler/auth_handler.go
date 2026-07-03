@@ -37,6 +37,10 @@ func (h *AuthHandler) Register(rg *gin.RouterGroup) {
 	t := rg.Group("/tenant")
 	t.Use(middleware.RequireTenant(h.mgr))
 	t.GET("/me", h.TenantMe)
+
+	o := rg.Group("/owner")
+	o.Use(middleware.RequireOwner(h.mgr))
+	o.GET("/me", h.OwnerMe)
 }
 
 func (h *AuthHandler) RegisterOwner(c *gin.Context) {
@@ -133,6 +137,23 @@ func (h *AuthHandler) TenantMe(c *gin.Context) {
 	profile, err := h.svc.GetTenantProfile(c.Request.Context(), tenantID)
 	if errors.Is(err, repository.ErrNotFound) {
 		response.Error(c, http.StatusNotFound, response.CodeNotFound, "tenant not found", nil)
+		return
+	}
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, response.CodeInternal, "could not fetch profile", nil)
+		return
+	}
+	response.Success(c, http.StatusOK, profile, "Success")
+}
+
+// OwnerMe returns the authenticated owner's profile. Identity is taken solely from
+// the verified access token (context), never from the query string or body.
+func (h *AuthHandler) OwnerMe(c *gin.Context) {
+	ownerID := middleware.OwnerIDFromContext(c)
+	ownerUserID := middleware.OwnerUserIDFromContext(c)
+	profile, err := h.svc.GetOwnerProfile(c.Request.Context(), ownerID, ownerUserID)
+	if errors.Is(err, repository.ErrNotFound) {
+		response.Error(c, http.StatusNotFound, response.CodeNotFound, "owner not found", nil)
 		return
 	}
 	if err != nil {
