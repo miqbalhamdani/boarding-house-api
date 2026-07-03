@@ -24,6 +24,11 @@ type stubOwnerRepo struct {
 	emailTaken bool
 	loginUser  *model.OwnerUser
 	loginErr   error
+
+	userByID    *model.OwnerUser
+	userByIDErr error
+	ownerByID   *model.Owner
+	ownerErr    error
 }
 
 func (s *stubOwnerRepo) BeginTx(context.Context) (pgx.Tx, error) { return fakeTx{}, nil }
@@ -46,6 +51,14 @@ func (s *stubOwnerRepo) CreateOwnerUser(_ context.Context, _ pgx.Tx, ownerID, fu
 
 func (s *stubOwnerRepo) GetOwnerUserByEmail(context.Context, string) (*model.OwnerUser, error) {
 	return s.loginUser, s.loginErr
+}
+
+func (s *stubOwnerRepo) GetOwnerUserByID(context.Context, string) (*model.OwnerUser, error) {
+	return s.userByID, s.userByIDErr
+}
+
+func (s *stubOwnerRepo) GetOwnerByID(context.Context, string) (*model.Owner, error) {
+	return s.ownerByID, s.ownerErr
 }
 
 type stubTenantRepo struct {
@@ -150,6 +163,42 @@ func TestLoginTenant_Success(t *testing.T) {
 	if res.TenantID != "t-1" || res.Tokens.AccessToken == "" {
 		t.Fatalf("unexpected result: %+v", res)
 	}
+}
+
+func TestGetOwnerProfile(t *testing.T) {
+	biz := "Acme Kos"
+	phone := "+628123"
+	user := &model.OwnerUser{ID: "ou-1", OwnerID: "owner-1", FullName: "Iqbal", Email: "o@example.com", Status: "active", PasswordHash: mustHash(t, "password123")}
+	owner := &model.Owner{ID: "owner-1", BusinessName: &biz, FullName: "Iqbal", Email: "o@example.com", PhoneNumber: &phone}
+
+	t.Run("success", func(t *testing.T) {
+		svc := NewAuthService(&stubOwnerRepo{userByID: user, ownerByID: owner}, &stubTenantRepo{}, testManager())
+		p, err := svc.GetOwnerProfile(context.Background(), "owner-1", "ou-1")
+		if err != nil {
+			t.Fatalf("profile: %v", err)
+		}
+		if p.OwnerID != "owner-1" || p.OwnerUserID != "ou-1" || p.FullName != "Iqbal" || p.Status != "active" {
+			t.Fatalf("unexpected profile: %+v", p)
+		}
+		if p.BusinessName == nil || *p.BusinessName != biz || p.PhoneNumber == nil || *p.PhoneNumber != phone {
+			t.Fatalf("workspace fields missing: %+v", p)
+		}
+	})
+
+	t.Run("owner mismatch is not found", func(t *testing.T) {
+		other := &model.OwnerUser{ID: "ou-1", OwnerID: "owner-2", Status: "active"}
+		svc := NewAuthService(&stubOwnerRepo{userByID: other, ownerByID: owner}, &stubTenantRepo{}, testManager())
+		if _, err := svc.GetOwnerProfile(context.Background(), "owner-1", "ou-1"); !errors.Is(err, repository.ErrNotFound) {
+			t.Fatalf("want ErrNotFound, got %v", err)
+		}
+	})
+
+	t.Run("user not found", func(t *testing.T) {
+		svc := NewAuthService(&stubOwnerRepo{userByIDErr: repository.ErrNotFound}, &stubTenantRepo{}, testManager())
+		if _, err := svc.GetOwnerProfile(context.Background(), "owner-1", "ou-1"); !errors.Is(err, repository.ErrNotFound) {
+			t.Fatalf("want ErrNotFound, got %v", err)
+		}
+	})
 }
 
 func TestRefreshOwner(t *testing.T) {

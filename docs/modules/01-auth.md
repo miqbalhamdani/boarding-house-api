@@ -26,6 +26,7 @@ Excluded:
 - `POST /auth/owner/register`
 - `POST /auth/owner/login`
 - `POST /auth/tenant/login`
+- `GET /owner/me`
 - `GET /tenant/me`
 
 ## Business Rules

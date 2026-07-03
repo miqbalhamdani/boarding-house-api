@@ -1,0 +1,37 @@
+meta {
+  name: Get Owner Me
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/owner/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+tests {
+  test("returns the authenticated owner profile", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.owner_id).to.be.a("string");
+    expect(res.getBody().data.owner_user_id).to.be.a("string");
+  });
+
+  test("does not leak tokens or secrets", function () {
+    const d = res.getBody().data;
+    expect(d.access_token).to.be.undefined;
+    expect(d.refresh_token).to.be.undefined;
+    expect(d.password_hash).to.be.undefined;
+  });
+}
+
+docs {
+  Returns the profile of the owner identified by the bearer access token.
+  owner_id and owner_user_id are derived from the token, never from query/body.
+  Requires an owner access token; a tenant token is rejected with 401.
+  Run "Login Owner" first to populate {{owner_access_token}}.
+}

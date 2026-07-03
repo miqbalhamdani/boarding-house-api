@@ -26,6 +26,19 @@ type OwnerUser struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
+// OwnerProfile is the owner-facing profile returned by GET /owner/me. It combines
+// the owner workspace with the authenticated login user and carries no secrets or
+// auth tokens.
+type OwnerProfile struct {
+	OwnerID      string  `json:"owner_id"`
+	OwnerUserID  string  `json:"owner_user_id"`
+	BusinessName *string `json:"business_name,omitempty"`
+	FullName     string  `json:"full_name"`
+	Email        string  `json:"email"`
+	PhoneNumber  *string `json:"phone_number,omitempty"`
+	Status       string  `json:"status"`
+}
+
 // TenantAuth holds the tenant fields needed for authentication and /tenant/me.
 type TenantAuth struct {
 	ID           string  `json:"id"`
