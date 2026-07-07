@@ -26,6 +26,7 @@ type AuthService interface {
 	RefreshOwner(ctx context.Context, refreshToken string) (*model.AuthTokens, error)
 	RefreshTenant(ctx context.Context, refreshToken string) (*model.AuthTokens, error)
 	GetTenantProfile(ctx context.Context, tenantID string) (*model.TenantAuth, error)
+	GetOwnerProfile(ctx context.Context, ownerID, ownerUserID string) (*model.OwnerProfile, error)
 }
 
 type authService struct {
@@ -165,4 +166,32 @@ func (s *authService) RefreshTenant(ctx context.Context, refreshToken string) (*
 
 func (s *authService) GetTenantProfile(ctx context.Context, tenantID string) (*model.TenantAuth, error) {
 	return s.tenants.GetByID(ctx, tenantID)
+}
+
+// GetOwnerProfile builds the owner-facing profile for GET /owner/me. Both IDs are
+// derived from the verified access token by the caller — never from request input.
+func (s *authService) GetOwnerProfile(ctx context.Context, ownerID, ownerUserID string) (*model.OwnerProfile, error) {
+	user, err := s.owners.GetOwnerUserByID(ctx, ownerUserID)
+	if err != nil {
+		return nil, err
+	}
+	// Defense in depth: the login user must belong to the owner in the token.
+	if user.OwnerID != ownerID {
+		return nil, repository.ErrNotFound
+	}
+
+	owner, err := s.owners.GetOwnerByID(ctx, ownerID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.OwnerProfile{
+		OwnerID:      owner.ID,
+		OwnerUserID:  user.ID,
+		BusinessName: owner.BusinessName,
+		FullName:     user.FullName,
+		Email:        user.Email,
+		PhoneNumber:  owner.PhoneNumber,
+		Status:       user.Status,
+	}, nil
 }
