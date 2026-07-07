@@ -29,4 +29,22 @@ docs {
   Cross-owner access returns 404.
   Run "Create Tenant" first to populate {{tenant_id}}.
   Requires owner access token.
+
+  Sample response (200):
+  {
+    "data": {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "full_name": "Budi Santoso",
+      "phone_number": "081234567890",
+      "email": "budi@example.com",
+      "identity_number": "317300001",
+      "emergency_contact_name": "Siti",
+      "emergency_contact_phone": "081299988877",
+      "status": "pending_payment",
+      "has_portal_access": true,
+      "created_at": "2026-07-01T08:00:00Z",
+      "updated_at": "2026-07-01T08:00:00Z"
+    },
+    "message": "Success"
+  }
 }

@@ -30,4 +30,28 @@ docs {
   Uses {{first_bill_id}} saved by the Onboarding "Assign Room" request.
   Returns 404 NOT_FOUND for a bill that does not exist or belongs to another owner (BR-001).
   Requires owner access token.
+
+  The read-only detail UI shows tenant, room, billing month, amount, due date and
+  status, so the denormalized tenant_name / room_number / room_name are returned
+  alongside the core fields.
+
+  Sample response (200):
+  {
+    "data": {
+      "id": "44444444-4444-4444-4444-444444444444",
+      "room_assignment_id": "55555555-5555-5555-5555-555555555555",
+      "tenant_id": "22222222-2222-2222-2222-222222222222",
+      "room_id": "33333333-3333-3333-3333-333333333333",
+      "billing_month": "2026-07",
+      "amount": 2000000,
+      "due_date": "2026-07-10",
+      "status": "unpaid",
+      "tenant_name": "Budi Santoso",
+      "room_number": "A-01",
+      "room_name": "Kamar Depan",
+      "created_at": "2026-07-01T00:05:00Z",
+      "updated_at": "2026-07-01T00:05:00Z"
+    },
+    "message": "Success"
+  }
 }

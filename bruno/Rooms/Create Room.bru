@@ -47,4 +47,19 @@ docs {
   monthly_rent must be a positive integer (stored in smallest currency unit, e.g. IDR cents are not used — store full rupiah).
   The created room id is saved to {{room_id}} for subsequent requests.
   Requires owner access token.
+
+  Sample response (201):
+  {
+    "data": {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "room_number": "101",
+      "room_name": "Room 101",
+      "monthly_rent": 2000000,
+      "status": "available",
+      "notes": "Near front door",
+      "created_at": "2026-07-01T08:00:00Z",
+      "updated_at": "2026-07-01T08:00:00Z"
+    },
+    "message": "Room created"
+  }
 }

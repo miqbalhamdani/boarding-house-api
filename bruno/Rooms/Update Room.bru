@@ -37,4 +37,19 @@ docs {
   Cross-owner access returns 404.
   Run "Create Room" first to populate {{room_id}}.
   Requires owner access token.
+
+  Sample response (200):
+  {
+    "data": {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "room_number": "101",
+      "room_name": "Room 101 Updated",
+      "monthly_rent": 2500000,
+      "status": "available",
+      "notes": "Renovated bathroom",
+      "created_at": "2026-07-01T08:00:00Z",
+      "updated_at": "2026-07-02T09:30:00Z"
+    },
+    "message": "Room updated"
+  }
 }

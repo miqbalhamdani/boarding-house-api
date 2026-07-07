@@ -30,4 +30,31 @@ docs {
   Uses {{payment_id}} saved by the "Record Manual Payment" request.
   Returns 404 NOT_FOUND for a payment that does not exist or belongs to another owner (BR-001).
   Requires owner access token.
+
+  The detail UI renders the denormalized tenant_name, room_number, room_name and
+  billing_month, plus the optional gateway_transaction_id for gateway payments.
+
+  Sample response (200):
+  {
+    "data": {
+      "id": "66666666-6666-6666-6666-666666666666",
+      "bill_id": "44444444-4444-4444-4444-444444444444",
+      "amount": 2000000,
+      "payment_source": "manual",
+      "payment_method": "bank_transfer",
+      "payment_date": "2026-07-10T10:00:00Z",
+      "reference_number": "TRX-001",
+      "notes": "Paid by bank transfer",
+      "gateway_transaction_id": null,
+      "tenant_id": "22222222-2222-2222-2222-222222222222",
+      "tenant_name": "Budi Santoso",
+      "room_id": "33333333-3333-3333-3333-333333333333",
+      "room_number": "A-01",
+      "room_name": "Kamar Depan",
+      "billing_month": "2026-07",
+      "created_at": "2026-07-10T10:00:05Z",
+      "updated_at": "2026-07-10T10:00:05Z"
+    },
+    "message": "Success"
+  }
 }
