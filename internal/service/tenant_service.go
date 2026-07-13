@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -14,17 +15,21 @@ type TenantService interface {
 	Create(ctx context.Context, ownerID string, in model.CreateTenantInput) (*model.Tenant, error)
 	List(ctx context.Context, ownerID string, f model.ListTenantsFilter) (*model.ListTenantsResult, error)
 	GetByID(ctx context.Context, id, ownerID string) (*model.Tenant, error)
+	// GetDetail returns a tenant together with their current room (if any) and
+	// paginated bill history.
+	GetDetail(ctx context.Context, id, ownerID string, billFilter model.ListBillsFilter) (*model.TenantDetailView, error)
 	Update(ctx context.Context, id, ownerID string, in model.UpdateTenantInput) (*model.Tenant, error)
 	Delete(ctx context.Context, id, ownerID string) error
 }
 
 type tenantService struct {
-	repo repository.TenantRepository
+	repo     repository.TenantRepository
+	billRepo repository.BillRepository
 }
 
-// NewTenantService wires a TenantService to its repository.
-func NewTenantService(repo repository.TenantRepository) TenantService {
-	return &tenantService{repo: repo}
+// NewTenantService wires a TenantService to its repositories.
+func NewTenantService(repo repository.TenantRepository, billRepo repository.BillRepository) TenantService {
+	return &tenantService{repo: repo, billRepo: billRepo}
 }
 
 func (s *tenantService) Create(ctx context.Context, ownerID string, in model.CreateTenantInput) (*model.Tenant, error) {
@@ -47,6 +52,29 @@ func (s *tenantService) List(ctx context.Context, ownerID string, f model.ListTe
 
 func (s *tenantService) GetByID(ctx context.Context, id, ownerID string) (*model.Tenant, error) {
 	return s.repo.GetByID(ctx, id, ownerID)
+}
+
+func (s *tenantService) GetDetail(ctx context.Context, id, ownerID string, billFilter model.ListBillsFilter) (*model.TenantDetailView, error) {
+	tenant, err := s.repo.GetByID(ctx, id, ownerID)
+	if err != nil {
+		return nil, err
+	}
+
+	currentRoom, err := s.repo.GetCurrentRoom(ctx, id, ownerID)
+	if err != nil && !errors.Is(err, repository.ErrNotFound) {
+		return nil, err
+	}
+	if errors.Is(err, repository.ErrNotFound) {
+		currentRoom = nil
+	}
+
+	billFilter.TenantID = id
+	billHistory, err := s.billRepo.List(ctx, ownerID, billFilter)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.TenantDetailView{Tenant: tenant, CurrentRoom: currentRoom, BillHistory: billHistory}, nil
 }
 
 func (s *tenantService) Update(ctx context.Context, id, ownerID string, in model.UpdateTenantInput) (*model.Tenant, error) {

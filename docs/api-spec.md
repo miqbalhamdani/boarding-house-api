@@ -173,7 +173,48 @@ Request:
 ```
 
 ### Get Tenant Detail
-`GET /owner/tenants/{tenant_id}`
+`GET /owner/tenants/{tenant_id}?status=unpaid&page=1&limit=20`
+
+Returns the tenant plus their current room (null when unassigned) and paginated bill history for the tenant. Query params (`status`, `page`, `limit`) filter/paginate `bill_history` only.
+
+Response:
+```json
+{
+  "data": {
+    "tenant": {
+      "id": "...",
+      "full_name": "Budi Santoso",
+      "phone_number": "0812...",
+      "email": "budi@example.com",
+      "identity_number": "317300001",
+      "emergency_contact_name": "Siti",
+      "emergency_contact_phone": "081299988877",
+      "status": "active",
+      "has_portal_access": true,
+      "created_at": "...",
+      "updated_at": "..."
+    },
+    "current_room": {
+      "room_id": "...",
+      "room_number": "101",
+      "room_name": "Room 101",
+      "room_assignment_id": "...",
+      "assignment_status": "active",
+      "start_date": "...",
+      "end_date": null,
+      "monthly_rent": 2000000,
+      "payment_due_day": 5
+    },
+    "bill_history": {
+      "bills": [ { "id": "...", "billing_month": "2026-07", "amount": 2000000, "status": "unpaid", "...": "..." } ],
+      "total": 12,
+      "page": 1,
+      "limit": 20
+    }
+  },
+  "message": "Success"
+}
+```
 
 ### Update Tenant
 `PATCH /owner/tenants/{tenant_id}`

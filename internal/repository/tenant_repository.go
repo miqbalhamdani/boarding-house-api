@@ -21,6 +21,9 @@ type TenantRepository interface {
 	Create(ctx context.Context, ownerID string, in model.CreateTenantInput, passwordHash *string) (*model.Tenant, error)
 	List(ctx context.Context, ownerID string, f model.ListTenantsFilter) (*model.ListTenantsResult, error)
 	GetByID(ctx context.Context, id, ownerID string) (*model.Tenant, error)
+	// GetCurrentRoom returns the room on the tenant's active/pending
+	// assignment, or ErrNotFound when the tenant has no current room.
+	GetCurrentRoom(ctx context.Context, tenantID, ownerID string) (*model.TenantCurrentRoom, error)
 	Update(ctx context.Context, id, ownerID string, in model.UpdateTenantInput, passwordHash *string) (*model.Tenant, error)
 	SoftDelete(ctx context.Context, id, ownerID string) error
 }
@@ -152,6 +155,36 @@ func (r *tenantRepository) GetByID(ctx context.Context, id, ownerID string) (*mo
 		return nil, fmt.Errorf("get tenant by id: %w", err)
 	}
 	return t, nil
+}
+
+func (r *tenantRepository) GetCurrentRoom(ctx context.Context, tenantID, ownerID string) (*model.TenantCurrentRoom, error) {
+	// The tenant's current room is whichever room holds the active or pending
+	// assignment; ended and cancelled assignments are historical. Newest wins.
+	const q = `
+		SELECT
+			rm.id, rm.room_number, rm.room_name,
+			ra.id, ra.status, ra.start_date, ra.end_date, ra.monthly_rent, ra.payment_due_day
+		FROM room_assignments ra
+		JOIN rooms rm ON rm.id = ra.room_id
+		WHERE ra.tenant_id = $1 AND ra.owner_id = $2
+			AND ra.status IN ('pending_payment', 'active')
+			AND ra.deleted_at IS NULL
+		ORDER BY ra.created_at DESC
+		LIMIT 1`
+
+	var v model.TenantCurrentRoom
+	err := r.pool.QueryRow(ctx, q, tenantID, ownerID).Scan(
+		&v.RoomID, &v.RoomNumber, &v.RoomName,
+		&v.RoomAssignmentID, &v.AssignmentStatus, &v.StartDate, &v.EndDate,
+		&v.MonthlyRent, &v.PaymentDueDay,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get current room: %w", err)
+	}
+	return &v, nil
 }
 
 func (r *tenantRepository) Update(ctx context.Context, id, ownerID string, in model.UpdateTenantInput, passwordHash *string) (*model.Tenant, error) {

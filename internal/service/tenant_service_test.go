@@ -21,6 +21,9 @@ type stubTenantMgmtRepo struct {
 	gotPassHash  *string
 	createOwner  string
 	getCalledFor string
+
+	currentRoom    *model.TenantCurrentRoom
+	currentRoomErr error
 }
 
 func (s *stubTenantMgmtRepo) Create(_ context.Context, ownerID string, _ model.CreateTenantInput, passwordHash *string) (*model.Tenant, error) {
@@ -50,6 +53,10 @@ func (s *stubTenantMgmtRepo) GetByID(_ context.Context, id, _ string) (*model.Te
 	return s.tenant, nil
 }
 
+func (s *stubTenantMgmtRepo) GetCurrentRoom(_ context.Context, _, _ string) (*model.TenantCurrentRoom, error) {
+	return s.currentRoom, s.currentRoomErr
+}
+
 func (s *stubTenantMgmtRepo) Update(_ context.Context, _ string, _ string, _ model.UpdateTenantInput, passwordHash *string) (*model.Tenant, error) {
 	s.gotPassHash = passwordHash
 	return s.tenant, s.updateErr
@@ -63,7 +70,7 @@ func (s *stubTenantMgmtRepo) SoftDelete(_ context.Context, id, _ string) error {
 func TestCreateTenant_DefaultsAndNoCredentialWhenNoPassword(t *testing.T) {
 	tenant := &model.Tenant{ID: "t-1", OwnerID: "o-1", FullName: "Budi", Status: "pending_payment"}
 	stub := &stubTenantMgmtRepo{tenant: tenant}
-	svc := NewTenantService(stub)
+	svc := NewTenantService(stub, &stubBillRepo{})
 
 	got, err := svc.Create(context.Background(), "o-1", model.CreateTenantInput{FullName: "Budi"})
 	if err != nil {
@@ -83,7 +90,7 @@ func TestCreateTenant_DefaultsAndNoCredentialWhenNoPassword(t *testing.T) {
 func TestCreateTenant_HashesPasswordWhenProvided(t *testing.T) {
 	tenant := &model.Tenant{ID: "t-1", OwnerID: "o-1", FullName: "Budi", Status: "pending_payment"}
 	stub := &stubTenantMgmtRepo{tenant: tenant}
-	svc := NewTenantService(stub)
+	svc := NewTenantService(stub, &stubBillRepo{})
 
 	_, err := svc.Create(context.Background(), "o-1", model.CreateTenantInput{FullName: "Budi", Password: "secret123"})
 	if err != nil {
@@ -101,7 +108,7 @@ func TestCreateTenant_HashesPasswordWhenProvided(t *testing.T) {
 }
 
 func TestCreateTenant_EmailTaken(t *testing.T) {
-	svc := NewTenantService(&stubTenantMgmtRepo{createErr: repository.ErrTenantEmailTaken})
+	svc := NewTenantService(&stubTenantMgmtRepo{createErr: repository.ErrTenantEmailTaken}, &stubBillRepo{})
 
 	_, err := svc.Create(context.Background(), "o-1", model.CreateTenantInput{FullName: "Budi", Email: "budi@example.com"})
 	if !errors.Is(err, repository.ErrTenantEmailTaken) {
@@ -111,7 +118,7 @@ func TestCreateTenant_EmailTaken(t *testing.T) {
 
 func TestGetTenant_CrossOwnerIsolated(t *testing.T) {
 	// The repository filters by owner_id; cross-owner access surfaces as ErrNotFound.
-	svc := NewTenantService(&stubTenantMgmtRepo{getErr: repository.ErrNotFound})
+	svc := NewTenantService(&stubTenantMgmtRepo{getErr: repository.ErrNotFound}, &stubBillRepo{})
 
 	_, err := svc.GetByID(context.Background(), "t-other", "o-1")
 	if !errors.Is(err, repository.ErrNotFound) {
@@ -122,7 +129,7 @@ func TestGetTenant_CrossOwnerIsolated(t *testing.T) {
 func TestUpdateTenant_HashesPasswordWhenProvided(t *testing.T) {
 	tenant := &model.Tenant{ID: "t-1", OwnerID: "o-1", FullName: "Budi", Status: "pending_payment"}
 	stub := &stubTenantMgmtRepo{tenant: tenant}
-	svc := NewTenantService(stub)
+	svc := NewTenantService(stub, &stubBillRepo{})
 
 	pw := "newsecret"
 	_, err := svc.Update(context.Background(), "t-1", "o-1", model.UpdateTenantInput{Password: &pw})
@@ -137,7 +144,7 @@ func TestUpdateTenant_HashesPasswordWhenProvided(t *testing.T) {
 func TestUpdateTenant_NoPasswordLeavesCredentialUntouched(t *testing.T) {
 	tenant := &model.Tenant{ID: "t-1", OwnerID: "o-1", FullName: "Budi", Status: "pending_payment"}
 	stub := &stubTenantMgmtRepo{tenant: tenant}
-	svc := NewTenantService(stub)
+	svc := NewTenantService(stub, &stubBillRepo{})
 
 	newName := "Budi Santoso"
 	_, err := svc.Update(context.Background(), "t-1", "o-1", model.UpdateTenantInput{FullName: &newName})
@@ -150,7 +157,7 @@ func TestUpdateTenant_NoPasswordLeavesCredentialUntouched(t *testing.T) {
 }
 
 func TestDeleteTenant_NotFound(t *testing.T) {
-	svc := NewTenantService(&stubTenantMgmtRepo{getErr: repository.ErrNotFound})
+	svc := NewTenantService(&stubTenantMgmtRepo{getErr: repository.ErrNotFound}, &stubBillRepo{})
 
 	if err := svc.Delete(context.Background(), "t-missing", "o-1"); !errors.Is(err, repository.ErrNotFound) {
 		t.Fatalf("want ErrNotFound, got %v", err)
@@ -160,7 +167,7 @@ func TestDeleteTenant_NotFound(t *testing.T) {
 func TestDeleteTenant_Succeeds(t *testing.T) {
 	tenant := &model.Tenant{ID: "t-1", OwnerID: "o-1", FullName: "Budi", Status: "active"}
 	stub := &stubTenantMgmtRepo{tenant: tenant}
-	svc := NewTenantService(stub)
+	svc := NewTenantService(stub, &stubBillRepo{})
 
 	if err := svc.Delete(context.Background(), "t-1", "o-1"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -170,9 +177,59 @@ func TestDeleteTenant_Succeeds(t *testing.T) {
 	}
 }
 
+func TestGetTenantDetail_IncludesCurrentRoomAndBills(t *testing.T) {
+	tenant := &model.Tenant{ID: "t-1", OwnerID: "o-1", FullName: "Budi", Status: "active"}
+	room := &model.TenantCurrentRoom{RoomID: "r-1", RoomNumber: "101", RoomAssignmentID: "ra-1", AssignmentStatus: "active"}
+	bills := &model.ListBillsResult{Bills: []*model.Bill{{ID: "b-1", TenantID: "t-1"}}, Total: 1, Page: 1, Limit: 20}
+	svc := NewTenantService(
+		&stubTenantMgmtRepo{tenant: tenant, currentRoom: room},
+		&stubBillRepo{listResult: bills},
+	)
+
+	detail, err := svc.GetDetail(context.Background(), "t-1", "o-1", model.ListBillsFilter{Page: 1, Limit: 20})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if detail.Tenant.ID != "t-1" {
+		t.Fatalf("want tenant t-1, got %q", detail.Tenant.ID)
+	}
+	if detail.CurrentRoom == nil || detail.CurrentRoom.RoomID != "r-1" {
+		t.Fatalf("want current room r-1, got %+v", detail.CurrentRoom)
+	}
+	if detail.BillHistory.Total != 1 || len(detail.BillHistory.Bills) != 1 {
+		t.Fatalf("want 1 bill, got total=%d bills=%d", detail.BillHistory.Total, len(detail.BillHistory.Bills))
+	}
+}
+
+func TestGetTenantDetail_UnassignedTenantHasNilCurrentRoom(t *testing.T) {
+	tenant := &model.Tenant{ID: "t-1", OwnerID: "o-1", FullName: "Budi", Status: "pending_payment"}
+	bills := &model.ListBillsResult{Bills: []*model.Bill{}, Total: 0, Page: 1, Limit: 20}
+	svc := NewTenantService(
+		&stubTenantMgmtRepo{tenant: tenant, currentRoomErr: repository.ErrNotFound},
+		&stubBillRepo{listResult: bills},
+	)
+
+	detail, err := svc.GetDetail(context.Background(), "t-1", "o-1", model.ListBillsFilter{Page: 1, Limit: 20})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if detail.CurrentRoom != nil {
+		t.Fatalf("want nil current room for unassigned tenant, got %+v", detail.CurrentRoom)
+	}
+}
+
+func TestGetTenantDetail_CrossOwnerIsolated(t *testing.T) {
+	svc := NewTenantService(&stubTenantMgmtRepo{getErr: repository.ErrNotFound}, &stubBillRepo{})
+
+	_, err := svc.GetDetail(context.Background(), "t-other", "o-1", model.ListBillsFilter{Page: 1, Limit: 20})
+	if !errors.Is(err, repository.ErrNotFound) {
+		t.Fatalf("want ErrNotFound for cross-owner access, got %v", err)
+	}
+}
+
 func TestListTenants_ReturnsOwnTenantsOnly(t *testing.T) {
 	tenant := &model.Tenant{ID: "t-1", OwnerID: "o-1", FullName: "Budi", Status: "active"}
-	svc := NewTenantService(&stubTenantMgmtRepo{tenant: tenant})
+	svc := NewTenantService(&stubTenantMgmtRepo{tenant: tenant}, &stubBillRepo{})
 
 	result, err := svc.List(context.Background(), "o-1", model.ListTenantsFilter{Page: 1, Limit: 20})
 	if err != nil {

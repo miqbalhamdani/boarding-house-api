@@ -7,7 +7,7 @@ Allow owner to manage tenant profiles.
 Included:
 - tenant list
 - tenant create
-- tenant detail
+- tenant detail (includes current room and bill history)
 - tenant update
 - soft delete tenant
 - status filter

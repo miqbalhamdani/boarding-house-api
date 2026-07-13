@@ -70,7 +70,7 @@ func run() error {
 
 	// Tenant management module.
 	tenantRepo := repository.NewTenantRepository(pool)
-	tenantSvc := service.NewTenantService(tenantRepo)
+	tenantSvc := service.NewTenantService(tenantRepo, billRepo)
 	tenantHandler := handler.NewTenantHandler(tenantSvc, tokenManager)
 
 	// Tenant onboarding module.

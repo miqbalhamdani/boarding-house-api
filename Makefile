@@ -1,4 +1,4 @@
-.PHONY: help run build test tidy fmt vet lint migrate-up migrate-down docker-up docker-down
+.PHONY: help run seed build test tidy fmt vet lint migrate-up migrate-down docker-up docker-down
 
 APP        := go-backend
 BIN        := bin/$(APP)
@@ -11,6 +11,9 @@ help: ## Show this help
 
 run: ## Run the API locally
 	go run $(MAIN)
+
+seed: ## Seed the database with dummy data
+	go run ./cmd/seed
 
 build: ## Build the API binary
 	go build -o $(BIN) $(MAIN)

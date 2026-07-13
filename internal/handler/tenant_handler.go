@@ -84,7 +84,16 @@ func (h *TenantHandler) GetTenant(c *gin.Context) {
 	ownerID := middleware.OwnerIDFromContext(c)
 	tenantID := c.Param("tenant_id")
 
-	tenant, err := h.svc.GetByID(c.Request.Context(), tenantID, ownerID)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	billFilter := model.ListBillsFilter{
+		Status: c.Query("status"),
+		Page:   page,
+		Limit:  limit,
+	}
+
+	detail, err := h.svc.GetDetail(c.Request.Context(), tenantID, ownerID, billFilter)
 	if errors.Is(err, repository.ErrNotFound) {
 		response.Error(c, http.StatusNotFound, response.CodeNotFound, "tenant not found", nil)
 		return
@@ -93,7 +102,7 @@ func (h *TenantHandler) GetTenant(c *gin.Context) {
 		response.Error(c, http.StatusInternalServerError, response.CodeInternal, "could not fetch tenant", nil)
 		return
 	}
-	response.Success(c, http.StatusOK, tenant, "Success")
+	response.Success(c, http.StatusOK, detail, "Success")
 }
 
 func (h *TenantHandler) UpdateTenant(c *gin.Context) {
