@@ -7,7 +7,7 @@ Allow owner to create, view, update, and delete rooms in their own workspace.
 Included:
 - room list
 - room create
-- room detail
+- room detail (includes current tenant and bill history)
 - room update
 - soft delete room
 - filter by status

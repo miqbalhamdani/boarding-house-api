@@ -20,6 +20,9 @@ type RoomRepository interface {
 	Create(ctx context.Context, ownerID string, in model.CreateRoomInput) (*model.Room, error)
 	List(ctx context.Context, ownerID string, f model.ListRoomsFilter) (*model.ListRoomsResult, error)
 	GetByID(ctx context.Context, id, ownerID string) (*model.Room, error)
+	// GetCurrentTenant returns the tenant on the room's active/pending
+	// assignment, or ErrNotFound when the room is vacant.
+	GetCurrentTenant(ctx context.Context, roomID, ownerID string) (*model.RoomCurrentTenant, error)
 	Update(ctx context.Context, id, ownerID string, in model.UpdateRoomInput) (*model.Room, error)
 	SoftDelete(ctx context.Context, id, ownerID string) error
 }
@@ -137,6 +140,36 @@ func (r *roomRepository) GetByID(ctx context.Context, id, ownerID string) (*mode
 		return nil, fmt.Errorf("get room by id: %w", err)
 	}
 	return &rm, nil
+}
+
+func (r *roomRepository) GetCurrentTenant(ctx context.Context, roomID, ownerID string) (*model.RoomCurrentTenant, error) {
+	// The room's current tenant is whoever holds the active or pending
+	// assignment; ended and cancelled assignments are historical. Newest wins.
+	const q = `
+		SELECT
+			t.id, t.full_name, t.phone_number, t.email,
+			ra.id, ra.status, ra.start_date, ra.end_date, ra.monthly_rent, ra.payment_due_day
+		FROM room_assignments ra
+		JOIN tenants t ON t.id = ra.tenant_id
+		WHERE ra.room_id = $1 AND ra.owner_id = $2
+			AND ra.status IN ('pending_payment', 'active')
+			AND ra.deleted_at IS NULL
+		ORDER BY ra.created_at DESC
+		LIMIT 1`
+
+	var v model.RoomCurrentTenant
+	err := r.pool.QueryRow(ctx, q, roomID, ownerID).Scan(
+		&v.TenantID, &v.FullName, &v.PhoneNumber, &v.Email,
+		&v.RoomAssignmentID, &v.AssignmentStatus, &v.StartDate, &v.EndDate,
+		&v.MonthlyRent, &v.PaymentDueDay,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get current tenant: %w", err)
+	}
+	return &v, nil
 }
 
 func (r *roomRepository) Update(ctx context.Context, id, ownerID string, in model.UpdateRoomInput) (*model.Room, error) {

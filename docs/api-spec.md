@@ -105,7 +105,46 @@ Request:
 ```
 
 ### Get Room Detail
-`GET /owner/rooms/{room_id}`
+`GET /owner/rooms/{room_id}?status=unpaid&page=1&limit=20`
+
+Returns the room plus its current tenant (null when vacant) and paginated bill history for the room. Query params (`status`, `page`, `limit`) filter/paginate `bill_history` only.
+
+Response:
+```json
+{
+  "data": {
+    "room": {
+      "id": "...",
+      "room_number": "101",
+      "room_name": "Room 101",
+      "monthly_rent": 2000000,
+      "status": "occupied",
+      "notes": null,
+      "created_at": "...",
+      "updated_at": "..."
+    },
+    "current_tenant": {
+      "tenant_id": "...",
+      "full_name": "Budi Santoso",
+      "phone_number": "0812...",
+      "email": "budi@example.com",
+      "room_assignment_id": "...",
+      "assignment_status": "active",
+      "start_date": "...",
+      "end_date": null,
+      "monthly_rent": 2000000,
+      "payment_due_day": 5
+    },
+    "bill_history": {
+      "bills": [ { "id": "...", "billing_month": "2026-07", "amount": 2000000, "status": "unpaid", "...": "..." } ],
+      "total": 12,
+      "page": 1,
+      "limit": 20
+    }
+  },
+  "message": "Success"
+}
+```
 
 ### Update Room
 `PATCH /owner/rooms/{room_id}`

@@ -49,3 +49,26 @@ type ListRoomsResult struct {
 	Page  int     `json:"page"`
 	Limit int     `json:"limit"`
 }
+
+// RoomDetailView is the response for GET /owner/rooms/{room_id}/detail.
+type RoomDetailView struct {
+	Room          *Room              `json:"room"`
+	CurrentTenant *RoomCurrentTenant `json:"current_tenant"`
+	BillHistory   *ListBillsResult   `json:"bill_history"`
+}
+
+// RoomCurrentTenant is the tenant on the room's active/pending assignment,
+// flattened with assignment terms. Nil when the room is vacant (BR-010/BR-011:
+// at most one active/pending assignment per room).
+type RoomCurrentTenant struct {
+	TenantID         string     `json:"tenant_id"`
+	FullName         string     `json:"full_name"`
+	PhoneNumber      *string    `json:"phone_number,omitempty"`
+	Email            *string    `json:"email,omitempty"`
+	RoomAssignmentID string     `json:"room_assignment_id"`
+	AssignmentStatus string     `json:"assignment_status"`
+	StartDate        time.Time  `json:"start_date"`
+	EndDate          *time.Time `json:"end_date,omitempty"`
+	MonthlyRent      int        `json:"monthly_rent"`
+	PaymentDueDay    int        `json:"payment_due_day"`
+}

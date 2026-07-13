@@ -17,17 +17,21 @@ type RoomService interface {
 	Create(ctx context.Context, ownerID string, in model.CreateRoomInput) (*model.Room, error)
 	List(ctx context.Context, ownerID string, f model.ListRoomsFilter) (*model.ListRoomsResult, error)
 	GetByID(ctx context.Context, id, ownerID string) (*model.Room, error)
+	// GetDetail returns a room together with its current tenant (if any) and
+	// paginated bill history.
+	GetDetail(ctx context.Context, id, ownerID string, billFilter model.ListBillsFilter) (*model.RoomDetailView, error)
 	Update(ctx context.Context, id, ownerID string, in model.UpdateRoomInput) (*model.Room, error)
 	Delete(ctx context.Context, id, ownerID string) error
 }
 
 type roomService struct {
-	repo repository.RoomRepository
+	repo     repository.RoomRepository
+	billRepo repository.BillRepository
 }
 
-// NewRoomService wires a RoomService to its repository.
-func NewRoomService(repo repository.RoomRepository) RoomService {
-	return &roomService{repo: repo}
+// NewRoomService wires a RoomService to its repositories.
+func NewRoomService(repo repository.RoomRepository, billRepo repository.BillRepository) RoomService {
+	return &roomService{repo: repo, billRepo: billRepo}
 }
 
 func (s *roomService) Create(ctx context.Context, ownerID string, in model.CreateRoomInput) (*model.Room, error) {
@@ -43,6 +47,29 @@ func (s *roomService) List(ctx context.Context, ownerID string, f model.ListRoom
 
 func (s *roomService) GetByID(ctx context.Context, id, ownerID string) (*model.Room, error) {
 	return s.repo.GetByID(ctx, id, ownerID)
+}
+
+func (s *roomService) GetDetail(ctx context.Context, id, ownerID string, billFilter model.ListBillsFilter) (*model.RoomDetailView, error) {
+	room, err := s.repo.GetByID(ctx, id, ownerID)
+	if err != nil {
+		return nil, err
+	}
+
+	currentTenant, err := s.repo.GetCurrentTenant(ctx, id, ownerID)
+	if err != nil && !errors.Is(err, repository.ErrNotFound) {
+		return nil, err
+	}
+	if errors.Is(err, repository.ErrNotFound) {
+		currentTenant = nil
+	}
+
+	billFilter.RoomID = id
+	billHistory, err := s.billRepo.List(ctx, ownerID, billFilter)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.RoomDetailView{Room: room, CurrentTenant: currentTenant, BillHistory: billHistory}, nil
 }
 
 func (s *roomService) Update(ctx context.Context, id, ownerID string, in model.UpdateRoomInput) (*model.Room, error) {

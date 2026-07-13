@@ -64,7 +64,8 @@ func run() error {
 
 	// Room management module.
 	roomRepo := repository.NewRoomRepository(pool)
-	roomSvc := service.NewRoomService(roomRepo)
+	billRepo := repository.NewBillRepository(pool)
+	roomSvc := service.NewRoomService(roomRepo, billRepo)
 	roomHandler := handler.NewRoomHandler(roomSvc, tokenManager)
 
 	// Tenant management module.
@@ -78,7 +79,6 @@ func run() error {
 	onboardingHandler := handler.NewOnboardingHandler(onboardingSvc, tokenManager)
 
 	// Monthly billing module.
-	billRepo := repository.NewBillRepository(pool)
 	billSvc := service.NewBillService(billRepo)
 	billHandler := handler.NewBillHandler(billSvc, tokenManager)
 

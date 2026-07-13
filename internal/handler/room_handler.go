@@ -84,7 +84,16 @@ func (h *RoomHandler) GetRoom(c *gin.Context) {
 	ownerID := middleware.OwnerIDFromContext(c)
 	roomID := c.Param("room_id")
 
-	room, err := h.svc.GetByID(c.Request.Context(), roomID, ownerID)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	billFilter := model.ListBillsFilter{
+		Status: c.Query("status"),
+		Page:   page,
+		Limit:  limit,
+	}
+
+	detail, err := h.svc.GetDetail(c.Request.Context(), roomID, ownerID, billFilter)
 	if errors.Is(err, repository.ErrNotFound) {
 		response.Error(c, http.StatusNotFound, response.CodeNotFound, "room not found", nil)
 		return
@@ -93,7 +102,7 @@ func (h *RoomHandler) GetRoom(c *gin.Context) {
 		response.Error(c, http.StatusInternalServerError, response.CodeInternal, "could not fetch room", nil)
 		return
 	}
-	response.Success(c, http.StatusOK, room, "Success")
+	response.Success(c, http.StatusOK, detail, "Success")
 }
 
 func (h *RoomHandler) UpdateRoom(c *gin.Context) {
