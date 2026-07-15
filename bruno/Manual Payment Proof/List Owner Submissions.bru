@@ -1,0 +1,53 @@
+meta {
+  name: List Owner Submissions
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{base_url}}/owner/manual-payment-submissions?status=pending_review&page=1&limit=20
+  body: none
+  auth: bearer
+}
+
+params:query {
+  status: pending_review
+  page: 1
+  limit: 20
+  ~tenant_id: {{tenant_id}}
+  ~billing_month: 2026-07
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && res.getBody().data.submissions.length > 0) {
+    bru.setEnvVar("manual_payment_submission_id", res.getBody().data.submissions[0].id);
+  }
+}
+
+tests {
+  test("returns the owner's paginated submissions", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.submissions).to.be.an("array");
+    expect(res.getBody().data).to.have.property("total");
+    expect(res.getBody().data).to.have.property("page");
+    expect(res.getBody().data).to.have.property("limit");
+  });
+}
+
+docs {
+  Lists the authenticated owner's payment-proof submissions with denormalized
+  tenant/room/bill fields (Module 10). Scoped to the owner only (BR-001).
+
+  Query params (all optional):
+  - status: pending_review | approved | rejected | cancelled
+  - tenant_id (UUID)
+  - billing_month (YYYY-MM, matched against the bill's billing month)
+  - page, limit (default 1 / 20, max limit 100)
+
+  owner_id is derived from the owner token. Saves the first submission id to
+  {{manual_payment_submission_id}}. Requires an owner access token.
+}

@@ -1,0 +1,70 @@
+meta {
+  name: Submit Payment Proof
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/tenant/bills/{{tenant_first_bill_id}}/manual-payment-submissions
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tenant_access_token}}
+}
+
+body:multipart-form {
+  submitted_amount: 2000000
+  payment_method: bank_transfer
+  transfer_date: 2026-07-15T07:17:00Z
+  sender_account_name: Budi Santoso
+  reference_number: TRX-00192
+  notes: Paid via BCA transfer
+  proof: @file(fixtures/proof.jpg)
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("manual_payment_submission_id", res.getBody().data.id);
+  }
+}
+
+tests {
+  test("submits payment proof for review and returns 201", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().data.id).to.be.a("string");
+    expect(res.getBody().data.status).to.equal("pending_review");
+    expect(res.getBody().data.submitted_amount).to.equal(2000000);
+  });
+}
+
+docs {
+  Tenant submits proof of an external payment for their own unpaid/overdue bill
+  (Module 10). This is a payment CLAIM: it never marks the bill paid or creates a
+  payment record — only owner approval does.
+
+  Content-Type: multipart/form-data. Fields:
+  - submitted_amount (int, required): must equal the bill amount exactly
+  - payment_method (required): cash | bank_transfer | e_wallet | virtual_account | credit_card | qris | other
+  - transfer_date (RFC3339, required)
+  - sender_account_name, reference_number, notes (optional)
+  - proof (file, required): JPEG/PNG/WebP, max 5MB, validated by content not filename
+
+  Rules:
+  - tenant must own the bill; the bill must belong to the tenant's owner (BR-002)
+  - bill status must be unpaid or overdue
+  - submitted amount must equal bill amount (partial payments rejected)
+  - at most one pending_review submission per bill
+
+  Responses:
+  - 400 VALIDATION_ERROR: amount mismatch, unsupported/oversized/missing file,
+    bad payment_method or transfer_date
+  - 404 NOT_FOUND: bill not found or not owned by this tenant/owner
+  - 409 CONFLICT: bill not unpaid/overdue, or a pending submission already exists
+
+  Before running, execute "Tenant Portal / List My Bills" to populate
+  {{tenant_first_bill_id}}, and place a small JPEG at
+  bruno/Manual Payment Proof/fixtures/proof.jpg. Saves
+  {{manual_payment_submission_id}}. Requires a tenant access token.
+}
