@@ -89,7 +89,7 @@ func run() error {
 
 	// Dashboard module.
 	dashboardRepo := repository.NewDashboardRepository(pool)
-	dashboardSvc := service.NewDashboardService(dashboardRepo)
+	dashboardSvc := service.NewDashboardService(dashboardRepo, billRepo, paymentRepo)
 	dashboardHandler := handler.NewDashboardHandler(dashboardSvc, tokenManager)
 
 	// Tenant portal module. The MVP uses a self-contained sandbox gateway

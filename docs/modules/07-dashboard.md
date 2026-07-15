@@ -30,6 +30,13 @@ Excluded:
 - paid bills this month
 - collected amount this month
 
+## Embedded Lists
+The summary endpoint also returns short preview lists (capped at 5 rows each;
+each list's `total` reports the full owner-scoped count):
+- `unpaid_bills_list`, `overdue_bills_list`, `gateway_pending_bills_list`:
+  current outstanding bills by status (not month-bound).
+- `recent_payments`: successful payments within the requested month.
+
 ## Business Rules
 - Dashboard data must be scoped by owner ID.
 - Collected amount only counts successful payments.

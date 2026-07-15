@@ -392,10 +392,38 @@ Response:
     "overdue_bills": 1,
     "gateway_pending_bills": 1,
     "paid_bills_this_month": 5,
-    "collected_amount_this_month": 10000000
+    "collected_amount_this_month": 10000000,
+    "unpaid_bills_list": {
+      "bills": [ { "id": "...", "billing_month": "2026-07", "amount": 2000000, "status": "unpaid" } ],
+      "total": 2,
+      "page": 1,
+      "limit": 5
+    },
+    "overdue_bills_list": {
+      "bills": [ { "id": "...", "billing_month": "2026-06", "amount": 2000000, "status": "overdue" } ],
+      "total": 1,
+      "page": 1,
+      "limit": 5
+    },
+    "gateway_pending_bills_list": {
+      "bills": [ { "id": "...", "billing_month": "2026-07", "amount": 2000000, "status": "gateway_pending" } ],
+      "total": 1,
+      "page": 1,
+      "limit": 5
+    },
+    "recent_payments": {
+      "payments": [ { "id": "...", "amount": 2000000, "payment_date": "2026-07-05T00:00:00Z", "payment_method": "cash" } ],
+      "total": 5,
+      "page": 1,
+      "limit": 5
+    }
   }
 }
 ```
+
+The nine top-level counts are unchanged. The four list fields are short previews
+(capped at 5 rows each; the `total` reports the full owner-scoped count). The bill
+lists reflect current outstanding state; `recent_payments` is scoped to `month`.
 
 ## Tenant Portal API
 

@@ -35,7 +35,7 @@ func (h *DashboardHandler) Summary(c *gin.Context) {
 	ownerID := middleware.OwnerIDFromContext(c)
 	month := c.Query("month")
 
-	summary, err := h.svc.Summary(c.Request.Context(), ownerID, month)
+	view, err := h.svc.Overview(c.Request.Context(), ownerID, month)
 	if errors.Is(err, service.ErrInvalidMonth) {
 		response.Error(c, http.StatusBadRequest, response.CodeValidation, err.Error(), nil)
 		return
@@ -44,5 +44,5 @@ func (h *DashboardHandler) Summary(c *gin.Context) {
 		response.Error(c, http.StatusInternalServerError, response.CodeInternal, "could not load dashboard summary", nil)
 		return
 	}
-	response.Success(c, http.StatusOK, summary, "Success")
+	response.Success(c, http.StatusOK, view, "Success")
 }

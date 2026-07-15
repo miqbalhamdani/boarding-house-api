@@ -38,6 +38,16 @@ tests {
     expect(data.total_rooms).to.be.a("number");
     expect(data.collected_amount_this_month).to.be.a("number");
   });
+
+  test("includes embedded preview lists", function () {
+    const data = res.getBody().data;
+    expect(data).to.have.property("unpaid_bills_list");
+    expect(data).to.have.property("overdue_bills_list");
+    expect(data).to.have.property("gateway_pending_bills_list");
+    expect(data).to.have.property("recent_payments");
+    expect(data.unpaid_bills_list).to.have.property("bills");
+    expect(data.recent_payments).to.have.property("payments");
+  });
 }
 
 docs {
@@ -53,6 +63,12 @@ docs {
   - paid_bills_this_month: number of successful payments in the month
   - collected_amount_this_month: sum of successful payment amounts in the month
     (gateway-pending bills are NOT counted as collected)
+
+  Embedded preview lists (capped at 5 rows each; each list's `total` reports the
+  full owner-scoped count):
+  - unpaid_bills_list, overdue_bills_list, gateway_pending_bills_list: current
+    outstanding bills by status (ListBillsResult shape)
+  - recent_payments: successful payments in the month (ListPaymentsResult shape)
 
   owner_id is always derived from the owner token. Requires owner access token.
   An invalid month (not YYYY-MM) returns 400 VALIDATION_ERROR.

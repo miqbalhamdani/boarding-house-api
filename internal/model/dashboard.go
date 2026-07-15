@@ -19,3 +19,22 @@ type DashboardSummary struct {
 	PaidBillsThisMonth       int `json:"paid_bills_this_month"`
 	CollectedAmountThisMonth int `json:"collected_amount_this_month"`
 }
+
+// DashboardView is the enriched owner overview returned by
+// GET /owner/dashboard/summary. It embeds the flat DashboardSummary counts (so
+// those keys stay at the top level of the response) and adds short, owner-scoped
+// preview lists that mirror the "embedded list" enrichment used by the room and
+// tenant detail endpoints.
+//
+// The bill lists reflect current outstanding state (status filter only, not
+// month-bound), matching the outstanding-bill counts. RecentPayments is scoped
+// to the requested calendar month, matching PaidBillsThisMonth and
+// CollectedAmountThisMonth. Each list is capped to a small preview size; its
+// Total field still reports the full owner-scoped count.
+type DashboardView struct {
+	*DashboardSummary
+	UnpaidBills         *ListBillsResult    `json:"unpaid_bills_list"`
+	OverdueBills        *ListBillsResult    `json:"overdue_bills_list"`
+	GatewayPendingBills *ListBillsResult    `json:"gateway_pending_bills_list"`
+	RecentPayments      *ListPaymentsResult `json:"recent_payments"`
+}
