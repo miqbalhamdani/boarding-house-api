@@ -17,6 +17,7 @@ import (
 	"github.com/iqbal-hamdani/go-backend/internal/repository"
 	"github.com/iqbal-hamdani/go-backend/internal/server"
 	"github.com/iqbal-hamdani/go-backend/internal/service"
+	"github.com/iqbal-hamdani/go-backend/internal/storage"
 	"github.com/iqbal-hamdani/go-backend/pkg/auth"
 	"github.com/iqbal-hamdani/go-backend/pkg/logger"
 )
@@ -104,7 +105,23 @@ func run() error {
 	tenantPortalSvc := service.NewTenantPortalService(tenantPortalRepo, gatewayRepo, gatewayProvider, cfg.PaymentGatewayReturnURL)
 	tenantPortalHandler := handler.NewTenantPortalHandler(tenantPortalSvc, tokenManager)
 
-	router := server.NewRouter(cfg, healthHandler, userHandler, authHandler, roomHandler, tenantHandler, onboardingHandler, billHandler, paymentHandler, dashboardHandler, tenantPortalHandler)
+	// Manual payment-proof review module (Module 10). Proof files live in a
+	// private object store (MinIO in local dev, provisioned by docker-compose).
+	objectStore, err := storage.NewMinioStore(cfg.StorageEndpoint, cfg.StorageAccessKey, cfg.StorageSecretKey, cfg.StorageBucket, cfg.StorageUseSSL)
+	if err != nil {
+		return err
+	}
+	if err := objectStore.EnsureBucket(ctx); err != nil {
+		return err
+	}
+	manualPaymentRepo := repository.NewManualPaymentSubmissionRepository(pool)
+	manualPaymentSvc := service.NewManualPaymentService(
+		manualPaymentRepo, paymentRepo, tenantPortalRepo, objectStore,
+		time.Duration(cfg.StorageProofPresignTTLMinutes)*time.Minute,
+	)
+	manualPaymentHandler := handler.NewManualPaymentHandler(manualPaymentSvc, tokenManager)
+
+	router := server.NewRouter(cfg, healthHandler, userHandler, authHandler, roomHandler, tenantHandler, onboardingHandler, billHandler, paymentHandler, dashboardHandler, tenantPortalHandler, manualPaymentHandler)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

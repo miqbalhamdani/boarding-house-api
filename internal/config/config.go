@@ -26,6 +26,16 @@ type Config struct {
 	PaymentGatewayCheckoutBaseURL  string `mapstructure:"PAYMENT_GATEWAY_CHECKOUT_BASE_URL"`
 	PaymentGatewayReturnURL        string `mapstructure:"PAYMENT_GATEWAY_RETURN_URL"`
 	PaymentGatewayCheckoutTTLHours int    `mapstructure:"PAYMENT_GATEWAY_CHECKOUT_TTL_HOURS"`
+
+	// Object storage for payment-proof files (Module 10). Local dev is served by
+	// the MinIO service in docker-compose; production MUST override these with
+	// real, private credentials.
+	StorageEndpoint               string `mapstructure:"STORAGE_ENDPOINT"`
+	StorageAccessKey              string `mapstructure:"STORAGE_ACCESS_KEY"`
+	StorageSecretKey              string `mapstructure:"STORAGE_SECRET_KEY"`
+	StorageBucket                 string `mapstructure:"STORAGE_BUCKET"`
+	StorageUseSSL                 bool   `mapstructure:"STORAGE_USE_SSL"`
+	StorageProofPresignTTLMinutes int    `mapstructure:"STORAGE_PROOF_PRESIGN_TTL_MINUTES"`
 }
 
 // Load reads configuration from the environment, falling back to a local
@@ -42,6 +52,12 @@ func Load() (*Config, error) {
 	v.SetDefault("PAYMENT_GATEWAY_CHECKOUT_BASE_URL", "https://sandbox.pay.local/checkout")
 	v.SetDefault("PAYMENT_GATEWAY_RETURN_URL", "https://app.example.com/tenant/payment-result")
 	v.SetDefault("PAYMENT_GATEWAY_CHECKOUT_TTL_HOURS", 24)
+	v.SetDefault("STORAGE_ENDPOINT", "localhost:9000")
+	v.SetDefault("STORAGE_ACCESS_KEY", "minioadmin")
+	v.SetDefault("STORAGE_SECRET_KEY", "minioadmin")
+	v.SetDefault("STORAGE_BUCKET", "payment-proofs")
+	v.SetDefault("STORAGE_USE_SSL", false)
+	v.SetDefault("STORAGE_PROOF_PRESIGN_TTL_MINUTES", 15)
 
 	v.SetConfigName(".env")
 	v.SetConfigType("env")

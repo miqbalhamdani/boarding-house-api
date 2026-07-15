@@ -1,0 +1,38 @@
+meta {
+  name: Cancel Submission
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/tenant/manual-payment-submissions/{{manual_payment_submission_id}}/cancel
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tenant_access_token}}
+}
+
+tests {
+  test("cancels the tenant's own pending submission", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Cancels the tenant's own pending_review submission (Module 10). Cancelling does
+  not change the bill status.
+
+  Rules:
+  - tenant must own the submission (BR-002)
+  - only a pending_review submission may be cancelled
+
+  Responses:
+  - 200: submission cancelled
+  - 409 CONFLICT: submission is not pending, not found, or not owned by this
+    tenant (existence is not leaked)
+
+  Requires a tenant access token and {{manual_payment_submission_id}} from
+  "Submit Payment Proof".
+}

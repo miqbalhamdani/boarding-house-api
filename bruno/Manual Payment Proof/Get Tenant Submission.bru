@@ -1,0 +1,35 @@
+meta {
+  name: Get Tenant Submission
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/tenant/bills/{{tenant_first_bill_id}}/manual-payment-submission
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tenant_access_token}}
+}
+
+tests {
+  test("returns the tenant's current/most-recent submission", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.id).to.be.a("string");
+    expect(res.getBody().data).to.have.property("status");
+  });
+}
+
+docs {
+  Returns the current or most recent payment-proof submission for the tenant's
+  own bill (Module 10). tenant_id and owner_id are derived from the tenant token
+  (BR-002).
+
+  - 200: returns the latest submission (proof object key is never exposed)
+  - 404 NOT_FOUND: no submission exists for this bill, or the bill is not the
+    tenant's own
+
+  Requires a tenant access token.
+}

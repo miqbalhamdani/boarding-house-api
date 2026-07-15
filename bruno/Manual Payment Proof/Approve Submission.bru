@@ -1,0 +1,52 @@
+meta {
+  name: Approve Submission
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}/owner/manual-payment-submissions/{{manual_payment_submission_id}}/approve
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+body:json {
+  {
+    "review_notes": "Transfer verified in bank account"
+  }
+}
+
+tests {
+  test("approves the submission and returns the created payment", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.payment_source).to.equal("manual");
+    expect(res.getBody().data.amount).to.be.a("number");
+  });
+}
+
+docs {
+  Owner approves a pending submission (Module 10). Runs in ONE DB transaction with
+  row locking on the submission and bill:
+  - creates a manual payment (payment_source "manual", BR-029)
+  - marks the bill paid and stamps paid_at
+  - marks the submission approved with reviewed_by / reviewed_at
+  - if this is the first payment for a pending assignment, activates the tenant,
+    assignment, and room (BR-006, BR-008)
+
+  Body:
+  - review_notes (optional)
+
+  Responses:
+  - 200: submission approved, returns the payment
+  - 400 VALIDATION_ERROR: submitted amount no longer equals the bill amount
+  - 404 NOT_FOUND: submission not found or not owned by this owner
+  - 409 CONFLICT: submission not pending_review, bill already paid/cancelled, or a
+    payment already exists (BR-030 — concurrency backstop)
+
+  owner_id and reviewer (owner_user_id) are derived from the owner token.
+  Requires an owner access token.
+}

@@ -1,0 +1,39 @@
+meta {
+  name: Get Submission Detail
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{base_url}}/owner/manual-payment-submissions/{{manual_payment_submission_id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+tests {
+  test("returns submission detail with a presigned proof URL", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.id).to.be.a("string");
+    expect(res.getBody().data).to.have.property("tenant_name");
+    expect(res.getBody().data).to.have.property("room_number");
+    expect(res.getBody().data).to.have.property("bill_amount");
+    expect(res.getBody().data).to.have.property("proof_view_url");
+  });
+}
+
+docs {
+  Returns one submission scoped to the owner (Module 10, BR-001), including
+  denormalized bill/tenant/room fields and a short-lived presigned proof_view_url
+  for displaying the screenshot from the private bucket.
+
+  - 200: submission detail
+  - 404 NOT_FOUND: submission does not exist or belongs to another owner
+
+  The presigned URL is generated per request and expires
+  (STORAGE_PROOF_PRESIGN_TTL_MINUTES). owner_id is derived from the owner token.
+  Requires an owner access token.
+}

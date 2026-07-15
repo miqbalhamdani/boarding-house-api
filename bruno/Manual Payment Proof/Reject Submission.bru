@@ -1,0 +1,47 @@
+meta {
+  name: Reject Submission
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{base_url}}/owner/manual-payment-submissions/{{manual_payment_submission_id}}/reject
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_access_token}}
+}
+
+body:json {
+  {
+    "reason": "payment_not_found",
+    "review_notes": "No matching transaction was found in the bank statement"
+  }
+}
+
+tests {
+  test("rejects the submission and returns 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Owner rejects a pending submission with a required reason (Module 10). No payment
+  is created and the bill stays unpaid/overdue; the tenant may submit a new proof.
+
+  Body:
+  - reason (required): payment_not_found | incorrect_amount | incorrect_destination
+    | unclear_proof | duplicate_proof | wrong_billing_month | other
+  - review_notes (optional)
+
+  Responses:
+  - 200: submission rejected, reviewed_by / reviewed_at stored
+  - 400 VALIDATION_ERROR: reason missing
+  - 404 NOT_FOUND: submission not found or not owned by this owner
+  - 409 CONFLICT: submission is not pending_review
+
+  owner_id and reviewer are derived from the owner token. Requires an owner access
+  token.
+}
