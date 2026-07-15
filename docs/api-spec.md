@@ -255,8 +255,15 @@ Response:
 ### List Bills
 `GET /owner/bills?status=unpaid&billing_month=2026-07&page=1&limit=20`
 
+Each bill row is denormalized with `tenant_name`, `room_number` and `room_name`
+so the list can be rendered without extra lookups. Results are ordered by
+`due_date` descending (most recent due date first), then `created_at` descending.
+
 ### Get Bill Detail
 `GET /owner/bills/{bill_id}`
+
+Returns the bill with the same denormalized `tenant_name`, `room_number` and
+`room_name` fields alongside the core bill fields.
 
 ### Generate Monthly Bills Manually
 `POST /owner/bills/generate-monthly`

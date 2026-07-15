@@ -8,6 +8,8 @@ type ListBillsFilter struct {
 	RoomID       string
 	Page         int
 	Limit        int
+	// SortByDueDate orders results by due_date DESC (list endpoint only).
+	SortByDueDate bool
 }
 
 // ListBillsResult is the paginated bill list response.

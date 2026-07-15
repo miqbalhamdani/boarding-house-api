@@ -22,8 +22,8 @@ Excluded:
 - bills
 
 ## API Endpoints
-- `GET /owner/bills`
-- `GET /owner/bills/{bill_id}`
+- `GET /owner/bills` — list is ordered by `due_date` DESC (then `created_at` DESC) and each row is denormalized with `tenant_name`, `room_number`, `room_name`.
+- `GET /owner/bills/{bill_id}` — detail carries the same denormalized `tenant_name`, `room_number`, `room_name`.
 - `POST /owner/bills/generate-monthly`
 - `POST /owner/bills/mark-overdue`
 

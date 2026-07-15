@@ -13,10 +13,25 @@ import (
 )
 
 // billColumns is the canonical column list/order for scanning a bill row.
+// Aliased to bills as `b` because the read queries LEFT JOIN tenants/rooms,
+// which would otherwise make id/owner_id ambiguous.
 const billColumns = `
-	id, owner_id, tenant_id, room_id, room_assignment_id, bill_number, bill_type,
-	billing_month, billing_period_start, billing_period_end, amount, due_date,
-	status, paid_at, created_at, updated_at`
+	b.id, b.owner_id, b.tenant_id, b.room_id, b.room_assignment_id, b.bill_number, b.bill_type,
+	b.billing_month, b.billing_period_start, b.billing_period_end, b.amount, b.due_date,
+	b.status, b.paid_at, b.created_at, b.updated_at`
+
+// billJoinColumns are the tenant/room fields joined onto each bill row on read.
+const billJoinColumns = `
+	COALESCE(t.full_name, '') AS tenant_name,
+	COALESCE(rm.room_number, '') AS room_number,
+	rm.room_name`
+
+// billJoins attaches the tenant and room a bill points at. LEFT JOIN so a
+// soft-deleted tenant/room never drops the bill row.
+const billJoins = `
+	FROM bills b
+	LEFT JOIN tenants t ON t.id = b.tenant_id
+	LEFT JOIN rooms rm ON rm.id = b.room_id`
 
 // BillRepository defines persistence operations for monthly rent bills. Every
 // method filters by owner_id to enforce owner isolation (BR-001).
@@ -55,6 +70,7 @@ func scanBill(row pgx.Row) (*model.Bill, error) {
 		&b.BillNumber, &b.BillType, &b.BillingMonth, &b.BillingPeriodStart,
 		&b.BillingPeriodEnd, &b.Amount, &b.DueDate, &b.Status, &b.PaidAt,
 		&b.CreatedAt, &b.UpdatedAt,
+		&b.TenantName, &b.RoomNumber, &b.RoomName,
 	)
 	return &b, err
 }
@@ -68,17 +84,23 @@ func (r *billRepository) List(ctx context.Context, ownerID string, f model.ListB
 	}
 	offset := (f.Page - 1) * f.Limit
 
-	const q = `
+	orderBy := "ORDER BY b.created_at DESC"
+	if f.SortByDueDate {
+		orderBy = "ORDER BY b.due_date DESC, b.created_at DESC"
+	}
+
+	q := `
 		SELECT ` + billColumns + `,
+			` + billJoinColumns + `,
 			COUNT(*) OVER() AS total_count
-		FROM bills
-		WHERE owner_id = $1
-			AND deleted_at IS NULL
-			AND ($2 = '' OR status = $2)
-			AND ($3 = '' OR billing_month = $3)
-			AND ($4 = '' OR tenant_id::text = $4)
-			AND ($5 = '' OR room_id::text = $5)
-		ORDER BY created_at DESC
+		` + billJoins + `
+		WHERE b.owner_id = $1
+			AND b.deleted_at IS NULL
+			AND ($2 = '' OR b.status = $2)
+			AND ($3 = '' OR b.billing_month = $3)
+			AND ($4 = '' OR b.tenant_id::text = $4)
+			AND ($5 = '' OR b.room_id::text = $5)
+		` + orderBy + `
 		LIMIT $6 OFFSET $7`
 
 	rows, err := r.pool.Query(ctx, q, ownerID, f.Status, f.BillingMonth, f.TenantID, f.RoomID, f.Limit, offset)
@@ -96,6 +118,7 @@ func (r *billRepository) List(ctx context.Context, ownerID string, f model.ListB
 			&b.BillNumber, &b.BillType, &b.BillingMonth, &b.BillingPeriodStart,
 			&b.BillingPeriodEnd, &b.Amount, &b.DueDate, &b.Status, &b.PaidAt,
 			&b.CreatedAt, &b.UpdatedAt,
+			&b.TenantName, &b.RoomNumber, &b.RoomName,
 			&total,
 		); err != nil {
 			return nil, fmt.Errorf("scan bill: %w", err)
@@ -116,9 +139,10 @@ func (r *billRepository) List(ctx context.Context, ownerID string, f model.ListB
 
 func (r *billRepository) GetByID(ctx context.Context, id, ownerID string) (*model.Bill, error) {
 	const q = `
-		SELECT ` + billColumns + `
-		FROM bills
-		WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL`
+		SELECT ` + billColumns + `,
+			` + billJoinColumns + `
+		` + billJoins + `
+		WHERE b.id = $1 AND b.owner_id = $2 AND b.deleted_at IS NULL`
 
 	b, err := scanBill(r.pool.QueryRow(ctx, q, id, ownerID))
 	if errors.Is(err, pgx.ErrNoRows) {

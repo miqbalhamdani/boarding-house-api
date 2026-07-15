@@ -35,6 +35,11 @@ type Bill struct {
 	PaidAt             *time.Time `json:"paid_at,omitempty"`
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          time.Time  `json:"updated_at"`
+
+	// Tenant and room info joined on read (list/detail); zero on insert.
+	TenantName string  `json:"tenant_name"`
+	RoomNumber string  `json:"room_number"`
+	RoomName   *string `json:"room_name,omitempty"`
 }
 
 // AssignRoomInput is the body for POST /owner/onboarding/assign-room.

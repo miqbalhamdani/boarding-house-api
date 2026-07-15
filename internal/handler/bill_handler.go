@@ -44,12 +44,13 @@ func (h *BillHandler) ListBills(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 
 	filter := model.ListBillsFilter{
-		Status:       c.Query("status"),
-		BillingMonth: c.Query("billing_month"),
-		TenantID:     c.Query("tenant_id"),
-		RoomID:       c.Query("room_id"),
-		Page:         page,
-		Limit:        limit,
+		Status:        c.Query("status"),
+		BillingMonth:  c.Query("billing_month"),
+		TenantID:      c.Query("tenant_id"),
+		RoomID:        c.Query("room_id"),
+		Page:          page,
+		Limit:         limit,
+		SortByDueDate: true,
 	}
 
 	result, err := h.svc.List(c.Request.Context(), ownerID, filter)
